@@ -90,10 +90,10 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
               const selection:any=pick?teamMap.get(pick.selection_team_id):null
               return <details key={g.id} style={{...rs,border:'1px solid',borderColor:rs.borderColor,borderRadius:6,padding:2,margin:'0 auto 2px',fontSize:9,width:'100%',maxWidth:52,minWidth:0,boxSizing:'border-box'}}>
                 <summary style={{cursor:'pointer',listStyle:'none',textAlign:'center',display:'grid',gridTemplateRows:'auto auto auto auto',gap:1,justifyItems:'center',alignItems:'center'}}>
-                  <div style={{fontWeight:900,fontSize:9,lineHeight:1}}>{home?'VS':'@'}</div>
+                  <div style={{fontWeight:900,fontSize:5.5,lineHeight:1}}>{home?'VS':'@'}</div>
                   <div style={{fontWeight:900,fontSize:11,lineHeight:1,whiteSpace:'nowrap',letterSpacing:'-.2px'}}>{opp?.abbreviation||'TBD'}</div>
-                  {opp?.logo_url?<img src={opp.logo_url} alt={`${opp.name} logo`} style={{width:18,height:18,objectFit:'contain',display:'block'}}/>:<div style={{height:18}}/>}
-                  <div style={{fontWeight:900,fontSize:9,lineHeight:1,whiteSpace:'nowrap'}}>{d.time}</div>
+                  {opp?.logo_url?<img src={opp.logo_url} alt={`${opp.name} logo`} style={{width:25,height:25,objectFit:'contain',display:'block'}}/>:<div style={{height:25}}/>}
+                  <div style={{fontWeight:900,fontSize:5.5,lineHeight:1,whiteSpace:'nowrap'}}>{d.time}</div>
                   {pick?.result&&<div style={{fontWeight:900,textTransform:'uppercase',fontSize:7,marginTop:1}}>{pick.result}</div>}
                   {miss&&<div style={{fontWeight:900,fontSize:7,marginTop:1}}>AUTO L</div>}
                 </summary>

@@ -1,0 +1,35 @@
+name: Import NBA Squads
+
+on:
+  push:
+    paths:
+      - '.github/workflows/import-nba.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Clone NBA branch from source repository
+        run: |
+          git clone --depth 1 --branch nba-squads-bootstrap https://github.com/donlovesjoy-ai/NFL-squads.git /tmp/nba-source
+          rsync -a --delete --exclude '.git' --exclude '.github/workflows/import-nba.yml' /tmp/nba-source/ ./
+          mkdir -p .github/workflows
+          cp "$GITHUB_WORKSPACE/.github/workflows/import-nba.yml" /tmp/import-nba.yml || true
+          cp /tmp/import-nba.yml .github/workflows/import-nba.yml || true
+
+      - name: Commit imported NBA app
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Import NBA Squads app from nba-squads-bootstrap" || exit 0
+          git push origin HEAD:main

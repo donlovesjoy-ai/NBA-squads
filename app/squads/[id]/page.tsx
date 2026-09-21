@@ -1,0 +1,585 @@
+import Link from 'next/link'
+import { notFound,redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { Nav } from '../../components'
+import SquadLogo from '../../components/SquadLogo'
+import SquadNameLines from '../../components/SquadNameLines'
+
+function lineText(abbreviation:string|null|undefined,line:any){
+  if(!abbreviation || line===null || line===undefined) return ''
+  const value=Number(line)
+  if(value===0) return `${abbreviation} PK`
+  return `${abbreviation} ${value>0 ? `+${value}` : value}`
+}
+
+function gameDateEastern(value:string|Date|null){
+  if(!value) return '—'
+  return new Date(value).toLocaleDateString(
+    'en-US',
+    {timeZone:'America/New_York',month:'numeric',day:'numeric'}
+  )
+}
+
+function recordText(wins:any,losses:any,pushes:any){
+  const w=Number(wins||0)
+  const l=Number(losses||0)
+  const p=Number(pushes||0)
+  return p ? `${w}-${l}-${p}` : `${w}-${l}`
+}
+
+function fullRecordText(wins:any,losses:any,pushes:any){
+  return `${Number(wins||0)}-${Number(losses||0)}-${Number(pushes||0)}`
+}
+
+function pct(row:any){
+  const wins=Number(row.wins||0)
+  const losses=Number(row.losses||0)
+  const pushes=Number(row.pushes||0)
+  const games=wins+losses+pushes
+  return games ? (wins+pushes*0.5)/games : 0
+}
+
+function signed(value:any){
+  const number=Number(value||0)
+  return number>0 ? `+${number}` : `${number}`
+}
+
+function ordinal(n:number){
+  const mod100=n%100
+  if(mod100>=11 && mod100<=13) return `${n}th`
+  switch(n%10){
+    case 1:return `${n}st`
+    case 2:return `${n}nd`
+    case 3:return `${n}rd`
+    default:return `${n}th`
+  }
+}
+
+function sameStanding(a:any,b:any){
+  return (
+    pct(a)===pct(b) &&
+    Number(a.ats_margin||0)===Number(b.ats_margin||0)
+  )
+}
+
+function resultColor(result:any){
+  if(result==='W') return 'green'
+  if(result==='L') return 'red'
+  if(result==='P') return '#1565c0'
+  return null
+}
+
+function currentStreak(rows:any[]){
+  const completed=rows
+    .filter((row:any)=>row.week_complete && ['W','L','P'].includes(row.pick_result))
+    .sort((a:any,b:any)=>Number(a.nfl_week)-Number(b.nfl_week))
+
+  if(!completed.length){
+    return {label:'—',color:'inherit'}
+  }
+
+  const latestResult=completed[completed.length-1].pick_result
+  let count=0
+
+  for(let i=completed.length-1;i>=0;i--){
+    if(completed[i].pick_result===latestResult) count++
+    else break
+  }
+
+  return {
+    label:`${latestResult}${count}`,
+    color:resultColor(latestResult)||'inherit'
+  }
+}
+
+function selectionRecord(rows:any[],ownAbbreviation:string,ownTeam:boolean){
+  let wins=0
+  let losses=0
+  let pushes=0
+  const own=String(ownAbbreviation||'').toUpperCase()
+
+  for(const row of rows){
+    if(!['W','L','P'].includes(row.pick_result)) continue
+
+    const selection=String(row.selection_abbreviation||'').toUpperCase()
+    if(!selection) continue
+
+    const choseOwn=selection===own
+    if(choseOwn!==ownTeam) continue
+
+    if(row.pick_result==='W') wins++
+    else if(row.pick_result==='L') losses++
+    else if(row.pick_result==='P') pushes++
+  }
+
+  return fullRecordText(wins,losses,pushes)
+}
+
+function teamRegion(name:string){
+  const parts=String(name||'').trim().split(/\s+/).filter(Boolean)
+  if(parts.length<=1) return parts[0]||'Team'
+  return parts.slice(0,-1).join(' ')
+}
+
+export default async function SquadSchedule({
+  params
+}:{
+  params:Promise<{id:string}>
+}){
+  const {id}=await params
+  const squadId=Number(id)
+
+  if(!Number.isInteger(squadId) || squadId<=0) notFound()
+
+  const supabase=await createClient()
+  const {data:{user}}=await supabase.auth.getUser()
+
+  if(!user) redirect('/login')
+
+  const [
+    {data:profile},
+    {data:squadData}
+  ]=await Promise.all([
+    supabase
+      .from('users')
+      .select('role')
+      .eq('id',user.id)
+      .maybeSingle(),
+
+    supabase
+      .from('squads')
+      .select(`
+        id,
+        squad_name,
+        owner_name,
+        division,
+        nfl_team_id,
+        logo_path,
+
+        nfl_teams(
+          name,
+          abbreviation
+        )
+      `)
+      .eq('season_year',2026)
+      .eq('id',squadId)
+      .maybeSingle()
+  ])
+
+  if(!squadData) notFound()
+
+  const squad:any=squadData
+  const commissioner=profile?.role==='commissioner'
+
+  const [
+    {data:scheduleRows},
+    {data:leagueSquadData},
+    {data:standingsData}
+  ]=await Promise.all([
+    supabase.rpc(
+      'get_squad_schedule_profile',
+      {p_squad_id:squadId,p_season_year:2026}
+    ),
+
+    supabase
+      .from('squads')
+      .select(`
+        id,
+        squad_name,
+        nfl_team_id,
+        logo_path,
+
+        nfl_teams(
+          abbreviation
+        )
+      `)
+      .eq('season_year',2026),
+
+    supabase
+      .from('standings')
+      .select(`
+        wins,
+        losses,
+        pushes,
+        ats_margin,
+
+        squads!inner(
+          id,
+          division
+        )
+      `)
+      .eq('season_year',2026)
+  ])
+
+  const schedule:any[]=scheduleRows||[]
+  const streak=currentStreak(schedule)
+  const leagueSquads:any[]=leagueSquadData||[]
+  const squadByNflTeam=new Map<number,any>()
+
+  for(const leagueSquad of leagueSquads){
+    squadByNflTeam.set(Number(leagueSquad.nfl_team_id),leagueSquad)
+  }
+
+  const squadNflTeam=Array.isArray(squad.nfl_teams)
+    ? squad.nfl_teams[0]
+    : squad.nfl_teams
+
+  const teamAbbreviation=squadNflTeam?.abbreviation||''
+  const ownTeamRegion=teamRegion(squadNflTeam?.name||'')
+  const ownPickRecord=selectionRecord(schedule,teamAbbreviation,true)
+  const opponentPickRecord=selectionRecord(schedule,teamAbbreviation,false)
+
+  const divisionRows=(standingsData||[])
+    .filter((row:any)=>Number(row.squads?.division)===Number(squad.division))
+    .sort((a:any,b:any)=>
+      pct(b)-pct(a) ||
+      Number(b.ats_margin||0)-Number(a.ats_margin||0) ||
+      Number(a.squads?.id||0)-Number(b.squads?.id||0)
+    )
+
+  const rankedDivisionRows=divisionRows.map((row:any,index:number)=>{
+    const previous=divisionRows[index-1]
+    let rank=1
+
+    if(index>0){
+      if(sameStanding(row,previous)){
+        const firstMatchingIndex=divisionRows
+          .slice(0,index)
+          .findIndex((candidate:any)=>sameStanding(candidate,row))
+        rank=firstMatchingIndex+1
+      }else{
+        rank=index+1
+      }
+    }
+
+    const tied=divisionRows.some((other:any)=>
+      Number(other.squads?.id)!==Number(row.squads?.id) && sameStanding(other,row)
+    )
+
+    return {...row,displayRank:rank,tied}
+  })
+
+  const squadStanding:any=rankedDivisionRows.find(
+    (row:any)=>Number(row.squads?.id)===Number(squadId)
+  )
+
+  const standingPosition=squadStanding
+    ? `${squadStanding.tied ? 'T-' : ''}${ordinal(squadStanding.displayRank)} Place`
+    : '—'
+
+  const standingColor=squadStanding
+    ? squadStanding.displayRank<=2 ? 'green' : 'red'
+    : 'inherit'
+
+  const headCell={
+    textAlign:'center' as const,
+    padding:'7px 1px',
+    whiteSpace:'normal' as const,
+    fontSize:'0.68rem',
+    lineHeight:1.05
+  }
+
+  const bodyCell={
+    textAlign:'center' as const,
+    padding:'8px 1px',
+    verticalAlign:'middle' as const,
+    fontSize:'0.72rem',
+    lineHeight:1.05
+  }
+
+  return (
+    <main className="wrap">
+      <Nav commissioner={commissioner}/>
+
+      <section
+        className="card"
+        style={{textAlign:'center',position:'relative'}}
+      >
+        <div
+          style={{
+            position:'absolute',
+            top:12,
+            left:12,
+            textAlign:'left'
+          }}
+        >
+          <div
+            className="muted"
+            style={{fontSize:'0.68rem',fontWeight:700,marginBottom:3}}
+          >
+            SELECTION
+          </div>
+          <div style={{fontSize:'0.72rem',fontWeight:800,lineHeight:1.35}}>
+            <div>{ownTeamRegion} {ownPickRecord}</div>
+            <div>Opponent {opponentPickRecord}</div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            position:'absolute',
+            top:12,
+            right:14,
+            textAlign:'center'
+          }}
+        >
+          <div className="muted" style={{fontSize:'0.7rem',fontWeight:700}}>
+            STREAK
+          </div>
+          <div
+            style={{
+              marginTop:2,
+              fontSize:'1.15rem',
+              fontWeight:900,
+              color:streak.color
+            }}
+          >
+            {streak.label}
+          </div>
+        </div>
+
+        <div
+          style={{
+            display:'flex',
+            justifyContent:'center',
+            marginTop:12,
+            marginBottom:-8
+          }}
+        >
+          <SquadLogo
+            logoPath={squad.logo_path}
+            nflAbbreviation={teamAbbreviation}
+            squadName={squad.squad_name}
+            size={179}
+          />
+        </div>
+
+        <h1 style={{marginTop:0,marginBottom:8}}>
+          <SquadNameLines
+            squadName={squad.squad_name}
+            nflName={squadNflTeam?.name}
+          />
+        </h1>
+
+        <div style={{fontSize:'1rem',fontWeight:800}}>
+          {recordText(
+            squadStanding?.wins,
+            squadStanding?.losses,
+            squadStanding?.pushes
+          )}
+        </div>
+
+        <div
+          style={{
+            marginTop:5,
+            fontSize:'0.95rem',
+            fontWeight:800,
+            color:standingColor
+          }}
+        >
+          {standingPosition}
+        </div>
+
+        <div style={{marginTop:5,fontSize:'0.95rem',fontWeight:800}}>
+          ATS: {signed(squadStanding?.ats_margin)}
+        </div>
+      </section>
+
+      <section className="card">
+        <table
+          style={{
+            width:'100%',
+            borderCollapse:'collapse',
+            tableLayout:'fixed'
+          }}
+        >
+          <colgroup>
+            <col style={{width:'8%'}}/>
+            <col style={{width:'24%'}}/>
+            <col style={{width:'27%'}}/>
+            <col style={{width:'22%'}}/>
+            <col style={{width:'19%'}}/>
+          </colgroup>
+
+          <thead>
+            <tr>
+              <th style={headCell}>Wk</th>
+              <th style={headCell}>Opp</th>
+              <th style={headCell}>Selection<br/>&amp; Line</th>
+              <th style={headCell}>Date /<br/>Score</th>
+              <th style={headCell}>Record</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {schedule.map((row:any)=>{
+              const opponentSquad=row.opponent_team_id
+                ? squadByNflTeam.get(Number(row.opponent_team_id))
+                : null
+              const opponentLogo=opponentSquad?.logo_path||null
+              const opponentHref=opponentSquad ? `/squads/${opponentSquad.id}` : null
+              const opponentText=row.is_bye
+                ? 'BYE'
+                : `${row.is_home ? 'vs' : '@'} ${row.opponent_abbreviation||'—'}`
+
+              const status=String(row.game_status||'').toLowerCase()
+              const kickedOff=
+                status==='live' ||
+                status==='final' ||
+                (row.kickoff_time && new Date(row.kickoff_time)<=new Date())
+
+              let gameDisplay='—'
+              let ownScore:any=null
+              let opponentScore:any=null
+
+              if(row.is_bye){
+                gameDisplay='—'
+              }else if(kickedOff){
+                ownScore=row.is_home ? row.home_score : row.away_score
+                opponentScore=row.is_home ? row.away_score : row.home_score
+              }else{
+                gameDisplay=gameDateEastern(row.kickoff_time)
+              }
+
+              const selection=kickedOff
+                ? lineText(row.selection_abbreviation,row.selection_line)
+                : ''
+              const selectedAbbreviation=String(row.selection_abbreviation||'').toUpperCase()
+              const selectedOwnScore=Boolean(selectedAbbreviation) &&
+                selectedAbbreviation===String(teamAbbreviation||'').toUpperCase()
+              const selectedOpponentScore=Boolean(selectedAbbreviation) &&
+                selectedAbbreviation===String(row.opponent_abbreviation||'').toUpperCase()
+              const selectedScoreStyle={
+                display:'inline-block',
+                border:'1px solid #777',
+                borderRadius:3,
+                padding:'1px 3px',
+                lineHeight:1
+              }
+              const color=resultColor(row.pick_result)
+              const showRecord=Boolean(
+                row.record_wins!==null &&
+                row.record_losses!==null
+              )
+
+              return (
+                <tr key={row.nfl_week}>
+                  <td style={{...bodyCell,fontWeight:800}}>{row.nfl_week}</td>
+
+                  <td style={bodyCell}>
+                    {row.is_bye ? (
+                      <b>BYE</b>
+                    ) : opponentHref ? (
+                      <Link
+                        href={opponentHref}
+                        style={{
+                          display:'flex',
+                          alignItems:'center',
+                          justifyContent:'center',
+                          gap:3,
+                          color:'inherit',
+                          textDecoration:'none',
+                          fontWeight:700,
+                          whiteSpace:'nowrap'
+                        }}
+                      >
+                        <SquadLogo
+                          logoPath={opponentLogo}
+                          nflAbbreviation={row.opponent_abbreviation}
+                          squadName={opponentText}
+                          size={20}
+                        />
+                        <span>{opponentText}</span>
+                      </Link>
+                    ) : (
+                      <div
+                        style={{
+                          display:'flex',
+                          alignItems:'center',
+                          justifyContent:'center',
+                          gap:3,
+                          fontWeight:700,
+                          whiteSpace:'nowrap'
+                        }}
+                      >
+                        <SquadLogo
+                          logoPath={null}
+                          nflAbbreviation={row.opponent_abbreviation}
+                          squadName={opponentText}
+                          size={20}
+                        />
+                        <span>{opponentText}</span>
+                      </div>
+                    )}
+                  </td>
+
+                  <td style={bodyCell}>
+                    {selection ? (
+                      <span
+                        style={{
+                          color:color||'inherit',
+                          fontWeight:800,
+                          whiteSpace:'nowrap',
+                          fontSize:'0.7rem'
+                        }}
+                      >
+                        {selection}
+                      </span>
+                    ) : (
+                      <span>&nbsp;</span>
+                    )}
+                  </td>
+
+                  <td
+                    style={{
+                      ...bodyCell,
+                      whiteSpace:'nowrap',
+                      fontWeight:kickedOff ? 800 : 600,
+                      fontSize:kickedOff ? '0.76rem' : '0.72rem'
+                    }}
+                  >
+                    {kickedOff && !row.is_bye ? (
+                      <span
+                        style={{
+                          display:'inline-flex',
+                          alignItems:'center',
+                          gap:2
+                        }}
+                      >
+                        <span style={selectedOwnScore ? selectedScoreStyle : undefined}>
+                          {ownScore ?? 0}
+                        </span>
+                        <span>-</span>
+                        <span style={selectedOpponentScore ? selectedScoreStyle : undefined}>
+                          {opponentScore ?? 0}
+                        </span>
+                      </span>
+                    ) : gameDisplay}
+                  </td>
+
+                  <td style={{...bodyCell,whiteSpace:'nowrap',fontWeight:800}}>
+                    {showRecord
+                      ? recordText(row.record_wins,row.record_losses,row.record_pushes)
+                      : ''}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+
+        <p
+          className="muted"
+          style={{
+            textAlign:'center',
+            fontSize:'0.7rem',
+            marginTop:12,
+            marginBottom:0
+          }}
+        >
+          Selections reveal at kickoff.
+        </p>
+      </section>
+    </main>
+  )
+}

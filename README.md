@@ -168,3 +168,5 @@ Owner | Squad | Opponent | Spread | Kickoff | Result
 ## NBA Squads bootstrap
 
 The `nba-squads-bootstrap` branch is the isolated NBA Squads conversion branch and is intentionally separate from the live NFL Squads `main` branch. This branch is configured for the new NBA Squads Supabase project and Vercel deployment workflow.
+
+Deployment trigger: NBA repository connected to Vercel production.

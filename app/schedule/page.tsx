@@ -16,7 +16,14 @@ function monthKey(year:number,month:number){return `${year}-${String(month).padS
 function shiftMonth(year:number,month:number,delta:number){const d=new Date(Date.UTC(year,month-1+delta,1));return {year:d.getUTCFullYear(),month:d.getUTCMonth()+1}}
 function monthTitle(year:number,month:number){return new Intl.DateTimeFormat('en-US',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(Date.UTC(year,month-1,1)))}
 function spreadForTeam(game:any,teamId:number){if(game.home_spread==null)return '—';const n=Number(game.home_spread);const v=game.home_team_id===teamId?n:-n;return `${v>0?'+':''}${v}`}
-function resultStyle(result?:string,forced=false){if(forced||result==='loss')return {background:'#fee2e2',borderColor:'#ef4444',color:'#991b1b'};if(result==='win')return {background:'#dcfce7',borderColor:'#22c55e',color:'#166534'};if(result==='push')return {background:'#fef3c7',borderColor:'#f59e0b',color:'#92400e'};return {background:'#f1f5f9',borderColor:'#64748b',color:'#334155'}}
+function gameStarted(status?:string){const s=String(status||'').toLowerCase();return !['','scheduled','created','pre','pregame'].includes(s)}
+function borderStyle(status:string|undefined,result?:string,forced=false){
+  if(!gameStarted(status))return {border:'0 solid transparent'}
+  if(forced||result==='loss')return {border:'2px solid #ef4444'}
+  if(result==='win')return {border:'2px solid #22c55e'}
+  if(result==='push')return {border:'2px solid #f59e0b'}
+  return {border:'2px solid #2563eb'}
+}
 
 export default async function SchedulePage({searchParams}:{searchParams:Promise<{squad?:string;month?:string}>}){
   const supabase=await createClient()
@@ -82,23 +89,25 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
         {DAYS.map(d=><div key={d} style={{padding:'7px 0',textAlign:'center',fontWeight:900,fontSize:10,borderRight:'1px solid #c8c8c8',borderBottom:'1px solid #c8c8c8',background:'#f3f4f6'}}>{d}</div>)}
         {cells.map((day,index)=>{
           const gamesForDay=day?byDay.get(day)||[]:[]
-          return <div key={index} style={{minHeight:74,padding:2,borderRight:'1px solid #c8c8c8',borderBottom:'1px solid #c8c8c8',background:day?'#fff':'#f7f7f7',minWidth:0}}>
-            {day&&<div style={{fontSize:10,fontWeight:800,opacity:.55,marginBottom:2,paddingLeft:1}}>{day}</div>}
+          return <div key={index} style={{minHeight:82,padding:'2px 1px',borderRight:'1px solid #c8c8c8',borderBottom:'1px solid #c8c8c8',background:'#fff',minWidth:0}}>
+            {day&&<div style={{fontSize:10,fontWeight:800,opacity:.55,marginBottom:0,paddingLeft:2,lineHeight:1.05}}>{day}</div>}
             {gamesForDay.map((g:any)=>{
               const d=etParts(g.scheduled_tipoff_time),opponentId=g.home_team_id===selected.nba_team_id?g.away_team_id:g.home_team_id,opp:any=teamMap.get(opponentId),home=g.home_team_id===selected.nba_team_id
-              const pick:any=pickMap.get(g.id),miss=forcedMap.has(g.id),rs=resultStyle(pick?.result,miss)
+              const pick:any=pickMap.get(g.id),miss=forcedMap.has(g.id),started=gameStarted(g.status),bs=borderStyle(g.status,pick?.result,miss)
               const selection:any=pick?teamMap.get(pick.selection_team_id):null
-              return <details key={g.id} style={{...rs,border:'1px solid',borderColor:rs.borderColor,borderRadius:6,padding:2,margin:'0 auto 2px',fontSize:9,width:'100%',maxWidth:52,minWidth:0,boxSizing:'border-box'}}>
-                <summary style={{cursor:'pointer',listStyle:'none',textAlign:'center',display:'grid',gridTemplateRows:'auto auto auto auto',gap:1,justifyItems:'center',alignItems:'center'}}>
-                  <div style={{fontWeight:900,fontSize:5.5,lineHeight:1}}>{home?'VS':'@'}</div>
+              const score=started&&g.home_score!=null&&g.away_score!=null?`${g.away_score}-${g.home_score}`:''
+              return <details key={g.id} style={{...bs,background:'transparent',borderRadius:6,padding:'1px 2px 2px',margin:'0',fontSize:9,width:'100%',minWidth:0,boxSizing:'border-box'}}>
+                <summary style={{cursor:'pointer',listStyle:'none',textAlign:'center',display:'grid',gridTemplateRows:'auto auto auto auto auto',gap:1,justifyItems:'center',alignItems:'center'}}>
+                  <div style={{fontWeight:900,fontSize:5.5,lineHeight:.95,marginTop:0}}>{home?'VS':'@'}</div>
                   <div style={{fontWeight:900,fontSize:11,lineHeight:1,whiteSpace:'nowrap',letterSpacing:'-.2px'}}>{opp?.abbreviation||'TBD'}</div>
                   {opp?.logo_url?<img src={opp.logo_url} alt={`${opp.name} logo`} style={{width:25,height:25,objectFit:'contain',display:'block'}}/>:<div style={{height:25}}/>}
                   <div style={{fontWeight:900,fontSize:5.5,lineHeight:1,whiteSpace:'nowrap'}}>{d.time}</div>
+                  {score&&<div style={{fontWeight:900,fontSize:9,lineHeight:1,whiteSpace:'nowrap',marginTop:1}}>{score}</div>}
                   {pick?.result&&<div style={{fontWeight:900,textTransform:'uppercase',fontSize:7,marginTop:1}}>{pick.result}</div>}
                   {miss&&<div style={{fontWeight:900,fontSize:7,marginTop:1}}>AUTO L</div>}
                 </summary>
                 <div style={{borderTop:'1px solid rgba(0,0,0,.15)',marginTop:4,paddingTop:4,lineHeight:1.35,fontSize:9}}>
-                  <div><b>Final:</b> {g.status==='final'?`${g.away_score}–${g.home_score}`:'—'}</div>
+                  <div><b>Score:</b> {score||'—'}</div>
                   <div><b>Selection:</b> {miss?'Missed required game':selection?.abbreviation||'No pick'}</div>
                   <div><b>Spread:</b> {spreadForTeam(g,selected.nba_team_id)}</div>
                   <div><b>ATS:</b> {miss?'Loss':pick?.result?String(pick.result).toUpperCase():'—'}</div>

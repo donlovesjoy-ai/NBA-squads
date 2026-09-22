@@ -90,7 +90,7 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
         {cells.map((day,index)=>{
           const gamesForDay=day?byDay.get(day)||[]:[]
           return <div key={index} style={{minHeight:82,padding:'2px 1px',borderRight:'1px solid #c8c8c8',borderBottom:'1px solid #c8c8c8',background:'#fff',minWidth:0}}>
-            {day&&<div style={{fontSize:10,fontWeight:800,opacity:.55,marginBottom:0,paddingLeft:2,lineHeight:1.05}}>{day}</div>}
+            {gamesForDay.length===0&&day&&<div style={{fontSize:10,fontWeight:800,opacity:.55,paddingLeft:2,lineHeight:1.05}}>{day}</div>}
             {gamesForDay.map((g:any)=>{
               const d=etParts(g.scheduled_tipoff_time),opponentId=g.home_team_id===selected.nba_team_id?g.away_team_id:g.home_team_id,opp:any=teamMap.get(opponentId),home=g.home_team_id===selected.nba_team_id
               const pick:any=pickMap.get(g.id),miss=forcedMap.has(g.id),started=gameStarted(g.status),bs=borderStyle(g.status,pick?.result,miss)
@@ -98,9 +98,13 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
               const score=started&&g.home_score!=null&&g.away_score!=null?`${g.away_score}-${g.home_score}`:''
               return <details key={g.id} style={{...bs,background:'transparent',borderRadius:6,padding:'1px 2px 2px',margin:'0',fontSize:9,width:'100%',minWidth:0,boxSizing:'border-box'}}>
                 <summary style={{cursor:'pointer',listStyle:'none',textAlign:'center',display:'grid',gridTemplateRows:'auto auto auto auto auto',gap:1,justifyItems:'center',alignItems:'center'}}>
-                  <div style={{fontWeight:900,fontSize:5.5,lineHeight:.95,marginTop:0}}>{home?'VS':'@'}</div>
+                  <div style={{width:'100%',display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'end',minHeight:12,lineHeight:1}}>
+                    <div style={{justifySelf:'start',fontSize:10,fontWeight:800,opacity:.55,paddingLeft:1}}>{day}</div>
+                    <div style={{justifySelf:'center',fontWeight:900,fontSize:5.5,lineHeight:1,paddingBottom:1}}>{home?'VS':'@'}</div>
+                    <div/>
+                  </div>
+                  {opp?.logo_url?<img src={opp.logo_url} alt={`${opp.name} logo`} style={{width:31,height:31,objectFit:'contain',display:'block',marginTop:-1}}/>:<div style={{height:31}}/>}
                   <div style={{fontWeight:900,fontSize:11,lineHeight:1,whiteSpace:'nowrap',letterSpacing:'-.2px'}}>{opp?.abbreviation||'TBD'}</div>
-                  {opp?.logo_url?<img src={opp.logo_url} alt={`${opp.name} logo`} style={{width:25,height:25,objectFit:'contain',display:'block'}}/>:<div style={{height:25}}/>}
                   <div style={{fontWeight:900,fontSize:5.5,lineHeight:1,whiteSpace:'nowrap'}}>{d.time}</div>
                   {score&&<div style={{fontWeight:900,fontSize:9,lineHeight:1,whiteSpace:'nowrap',marginTop:1}}>{score}</div>}
                   {pick?.result&&<div style={{fontWeight:900,textTransform:'uppercase',fontSize:7,marginTop:1}}>{pick.result}</div>}

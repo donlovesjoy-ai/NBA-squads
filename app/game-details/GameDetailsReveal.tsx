@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
 const OVERLAY_ID='nba-game-logo-transition'
-const SETTLE_PAUSE_MS=110
+const SETTLE_PAUSE_MS=90
 
 export default function GameDetailsReveal({
   logoUrl,
@@ -15,29 +15,35 @@ export default function GameDetailsReveal({
   logoAlt:string
   children:ReactNode
 }){
-  const [visible,setVisible]=useState(false)
+  const [logoReady,setLogoReady]=useState(false)
+  const [dataVisible,setDataVisible]=useState(false)
 
   useEffect(()=>{
     const overlay=document.getElementById(OVERLAY_ID) as HTMLElement | null
 
     if(!overlay){
-      setVisible(true)
+      setLogoReady(true)
+      setDataVisible(true)
       return
     }
 
     const startedAt=Number(overlay.dataset.transitionStartedAt||0)
-    const duration=Number(overlay.dataset.transitionDuration||630)
+    const duration=Number(overlay.dataset.transitionDuration||756)
     const elapsed=startedAt ? Date.now()-startedAt : duration
     const remaining=Math.max(0,duration-elapsed)
-    const revealDelay=remaining+SETTLE_PAUSE_MS
 
-    const timer=window.setTimeout(()=>{
-      setVisible(true)
+    const logoTimer=window.setTimeout(()=>{
+      setLogoReady(true)
       overlay.remove()
-    },revealDelay)
+    },remaining)
+
+    const dataTimer=window.setTimeout(()=>{
+      setDataVisible(true)
+    },remaining+SETTLE_PAUSE_MS)
 
     return ()=>{
-      window.clearTimeout(timer)
+      window.clearTimeout(logoTimer)
+      window.clearTimeout(dataTimer)
     }
   },[])
 
@@ -62,16 +68,16 @@ export default function GameDetailsReveal({
           maxHeight:180,
           objectFit:'contain',
           display:'block',
-          opacity:visible?1:0,
-          transition:'opacity 90ms ease'
+          opacity:logoReady?1:0,
+          transition:'opacity 80ms ease'
         }}
       />}
     </div>
 
     <div style={{
-      opacity:visible?1:0,
-      transform:visible?'translateY(0)':'translateY(6px)',
-      transition:'opacity 170ms ease, transform 170ms ease'
+      opacity:dataVisible?1:0,
+      transform:dataVisible?'translateY(0)':'translateY(5px)',
+      transition:'opacity 220ms ease, transform 220ms ease'
     }}>
       {children}
     </div>

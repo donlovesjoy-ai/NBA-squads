@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '../../../lib/supabase/server'
 import { Nav } from '../../components'
+import GameZoomLink from '../../schedule/GameZoomLink'
 
 const TZ='America/New_York'
 function dateParts(value:string){
@@ -72,7 +73,7 @@ export default async function TeamSchedulePage({params}:{params:Promise<{squadId
         const selectionText=miss?'AUTO L':pick?`${lineTeam}${spread!=='—'?` ${spread}`:''}`:''
         const score=g.status==='final'?`${g.away_score}-${g.home_score}`:fmtTime(g.scheduled_tipoff_time)
         const color=statusColor(pick?.result,miss)
-        return <Link
+        return <GameZoomLink
           key={g.id}
           href={`/game-details?game=${g.id}&squad=${squad.id}`}
           style={{
@@ -80,11 +81,15 @@ export default async function TeamSchedulePage({params}:{params:Promise<{squadId
             gridTemplateColumns:'42px minmax(92px,1.25fr) 70px 58px 44px',
             gap:3,
             alignItems:'center',
+            width:'100%',
             padding:'9px 2px',
+            border:'none',
             borderBottom:'1px solid #e5e7eb',
-            fontSize:11,
+            borderRadius:0,
+            background:'transparent',
             color:'inherit',
-            textDecoration:'none'
+            textDecoration:'none',
+            textAlign:'left'
           }}
         >
           <div style={{textAlign:'center',fontWeight:900,lineHeight:1.05,fontSize:10}}>
@@ -98,7 +103,7 @@ export default async function TeamSchedulePage({params}:{params:Promise<{squadId
           <div style={{fontWeight:900,color,whiteSpace:'nowrap',fontSize:10,textAlign:'center'}}>{selectionText}</div>
           <div style={{textAlign:'center',fontWeight:900,whiteSpace:'nowrap',fontSize:10}}>{score}</div>
           <div style={{textAlign:'center',fontWeight:900,whiteSpace:'nowrap',fontSize:10}}>{record}</div>
-        </Link>
+        </GameZoomLink>
       })}
     </section>}
 

@@ -1,85 +1,70 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
 const OVERLAY_ID='nba-game-logo-transition'
-const SETTLE_PAUSE_MS=90
+const TRAVEL_MS=756
+const SETTLE_PAUSE_MS=100
+const FADE_MS=220
 
-export default function GameDetailsReveal({
-  logoUrl,
-  logoAlt,
-  children
-}:{
-  logoUrl?:string|null
-  logoAlt:string
-  children:ReactNode
-}){
-  const [logoReady,setLogoReady]=useState(false)
-  const [dataVisible,setDataVisible]=useState(false)
+export default function GameDetailsReveal({children}:{children:ReactNode}){
+  const wrapRef=useRef<HTMLDivElement>(null)
+  const [visible,setVisible]=useState(false)
 
   useEffect(()=>{
-    const overlay=document.getElementById(OVERLAY_ID) as HTMLElement | null
+    const overlay=document.getElementById(OVERLAY_ID) as HTMLImageElement | null
+    const target=wrapRef.current?.querySelector<HTMLElement>('[data-logo-transition-target="true"]')
 
-    if(!overlay){
-      setLogoReady(true)
-      setDataVisible(true)
+    if(!overlay||!target){
+      setVisible(true)
+      overlay?.remove()
       return
     }
 
-    const startedAt=Number(overlay.dataset.transitionStartedAt||0)
-    const duration=Number(overlay.dataset.transitionDuration||756)
-    const elapsed=startedAt ? Date.now()-startedAt : duration
-    const remaining=Math.max(0,duration-elapsed)
+    const rect=target.getBoundingClientRect()
 
-    const logoTimer=window.setTimeout(()=>{
-      setLogoReady(true)
+    overlay.style.transition=[
+      `left ${TRAVEL_MS}ms cubic-bezier(.16,.84,.2,1)`,
+      `top ${TRAVEL_MS}ms cubic-bezier(.16,.84,.2,1)`,
+      `width ${TRAVEL_MS}ms cubic-bezier(.16,.84,.2,1)`,
+      `height ${TRAVEL_MS}ms cubic-bezier(.16,.84,.2,1)`
+    ].join(', ')
+    overlay.style.willChange='left, top, width, height'
+
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        overlay.style.left=`${rect.left}px`
+        overlay.style.top=`${rect.top}px`
+        overlay.style.width=`${rect.width}px`
+        overlay.style.height=`${rect.height}px`
+      })
+    })
+
+    const fadeTimer=window.setTimeout(()=>{
+      setVisible(true)
+    },TRAVEL_MS+SETTLE_PAUSE_MS)
+
+    // Keep the moving logo on top for the first part of the fade, then remove it
+    // after the identical fixed logo underneath is already visible.
+    const removeTimer=window.setTimeout(()=>{
       overlay.remove()
-    },remaining)
-
-    const dataTimer=window.setTimeout(()=>{
-      setDataVisible(true)
-    },remaining+SETTLE_PAUSE_MS)
+    },TRAVEL_MS+SETTLE_PAUSE_MS+90)
 
     return ()=>{
-      window.clearTimeout(logoTimer)
-      window.clearTimeout(dataTimer)
+      window.clearTimeout(fadeTimer)
+      window.clearTimeout(removeTimer)
     }
   },[])
 
-  return <>
-    <div style={{
-      height:'25vw',
-      minHeight:86,
-      maxHeight:180,
-      display:'flex',
-      alignItems:'flex-start',
-      justifyContent:'center'
-    }}>
-      {logoUrl&&<img
-        src={logoUrl}
-        alt={logoAlt}
-        style={{
-          width:'25vw',
-          height:'25vw',
-          minWidth:86,
-          minHeight:86,
-          maxWidth:180,
-          maxHeight:180,
-          objectFit:'contain',
-          display:'block',
-          opacity:logoReady?1:0,
-          transition:'opacity 80ms ease'
-        }}
-      />}
-    </div>
-
-    <div style={{
-      opacity:dataVisible?1:0,
-      transform:dataVisible?'translateY(0)':'translateY(5px)',
-      transition:'opacity 220ms ease, transform 220ms ease'
-    }}>
-      {children}
-    </div>
-  </>
+  return <div
+    ref={wrapRef}
+    style={{
+      opacity:visible?1:0,
+      transform:visible?'translateY(0)':'translateY(4px)',
+      transition:`opacity ${FADE_MS}ms ease, transform ${FADE_MS}ms ease`
+    }}
+  >
+    {children}
+  </div>
 }

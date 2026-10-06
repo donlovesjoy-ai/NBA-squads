@@ -74,20 +74,23 @@ export default async function GamePage({searchParams}:{searchParams:Promise<{gam
   const selectedTeamId=selected?.nba_team_id
   const opponent:any=selectedTeamId===game.home_team_id?away:selectedTeamId===game.away_team_id?home:away
 
-  return <main style={{maxWidth:760,margin:'0 auto',padding:'14px 12px 64px'}}>
-    <GameDetailsReveal
-      logoUrl={opponent?.logo_url}
-      logoAlt={`${opponent?.name||'Opponent'} logo`}
-    >
-    <div style={{margin:'10px 0 14px',textAlign:'center'}}>
+  return <main style={{maxWidth:760,margin:'0 auto',padding:'10px 12px 64px'}}>
+    <div style={{margin:'2px 0 12px',textAlign:'center'}}>
       <Link href={selected?`/schedule?squad=${selected.id}`:'/schedule'} style={{fontWeight:900,textDecoration:'none'}}>← Back to calendar</Link>
     </div>
+
+    <GameDetailsReveal>
 
     <section className="card" style={{padding:'18px 14px'}}>
       <div style={{textAlign:'center',fontSize:13,fontWeight:800,opacity:.65,marginBottom:14}}>{formatTip(game.scheduled_tipoff_time)} · Eastern</div>
       <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'center',gap:10}}>
         <div style={{textAlign:'center',minWidth:0}}>
-          {away?.logo_url&&<img src={away.logo_url} alt={`${away.name} logo`} style={{width:74,height:74,objectFit:'contain',margin:'0 auto 6px',display:'block'}}/>}
+          {away?.logo_url&&<img
+            src={away.logo_url}
+            alt={`${away.name} logo`}
+            data-logo-transition-target={opponent?.id===away?.id?'true':undefined}
+            style={{width:74,height:74,objectFit:'contain',margin:'0 auto 6px',display:'block'}}
+          />}
           <div style={{fontSize:19,fontWeight:900}}>{away?.abbreviation||'AWAY'}</div>
           <div style={{fontSize:12,opacity:.65}}>{away?.name}</div>
         </div>
@@ -97,7 +100,12 @@ export default async function GamePage({searchParams}:{searchParams:Promise<{gam
           <div style={{fontSize:11,fontWeight:800,opacity:.6,marginTop:4,textTransform:'uppercase'}}>{game.status}</div>
         </div>
         <div style={{textAlign:'center',minWidth:0}}>
-          {home?.logo_url&&<img src={home.logo_url} alt={`${home.name} logo`} style={{width:74,height:74,objectFit:'contain',margin:'0 auto 6px',display:'block'}}/>}
+          {home?.logo_url&&<img
+            src={home.logo_url}
+            alt={`${home.name} logo`}
+            data-logo-transition-target={opponent?.id===home?.id?'true':undefined}
+            style={{width:74,height:74,objectFit:'contain',margin:'0 auto 6px',display:'block'}}
+          />}
           <div style={{fontSize:19,fontWeight:900}}>{home?.abbreviation||'HOME'}</div>
           <div style={{fontSize:12,opacity:.65}}>{home?.name}</div>
         </div>

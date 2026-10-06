@@ -1,12 +1,23 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 
 export default function GameZoomLink({href,children,style}:{href:string;children:ReactNode;style?:CSSProperties}) {
   const router=useRouter()
   const [leaving,setLeaving]=useState(false)
+
+  useEffect(()=>{
+    router.prefetch(href)
+
+    // Clear any scroll lock left behind by an older version of this transition.
+    document.body.style.overflow=''
+
+    return ()=>{
+      document.body.style.overflow=''
+    }
+  },[href,router])
 
   function openGame(event:React.MouseEvent<HTMLButtonElement>){
     if(leaving)return
@@ -22,17 +33,17 @@ export default function GameZoomLink({href,children,style}:{href:string;children
       const originY=buttonRect.top + buttonRect.height/2 - panelRect.top
 
       panel.style.transformOrigin=`${originX}px ${originY}px`
-      panel.style.transition='transform 340ms cubic-bezier(.2,.8,.2,1), filter 340ms ease'
-      panel.style.transform='scale(1.42)'
-      panel.style.filter='brightness(.98)'
-      panel.style.willChange='transform'
-      document.body.style.overflow='hidden'
+      panel.style.willChange='transform, opacity'
+      panel.style.transition='transform 180ms cubic-bezier(.18,.84,.22,1), opacity 180ms ease'
+      panel.style.transform='scale(2.35)'
+      panel.style.opacity='.94'
     }else{
-      button.style.transition='transform 300ms cubic-bezier(.2,.8,.2,1)'
-      button.style.transform='scale(1.35)'
+      button.style.transition='transform 160ms cubic-bezier(.18,.84,.22,1)'
+      button.style.transform='scale(1.8)'
     }
 
-    window.setTimeout(()=>router.push(href),300)
+    // Begin navigation before the zoom fully finishes so there is no dead pause.
+    window.setTimeout(()=>router.push(href),95)
   }
 
   return <button

@@ -1,8 +1,8 @@
- import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 const PRODUCTION_ORIGIN=
-  'https://nfl-squads.vercel.app'
+  'https://nbasquads.vercel.app'
 
 function getTrustedOrigin(){
   const configuredOrigin=

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 
 const SIGN_IN_DEADLINE_MS=8000
 const ACTIVITY_DEADLINE_MS=1500
+const PRODUCTION_ORIGIN='https://nbasquads.vercel.app'
 
 async function withDeadline<T>(
   work:Promise<T>,
@@ -48,12 +49,12 @@ function safeNext(value:string){
     const parsed=
       new URL(
         value,
-        'https://nfl-squads.vercel.app'
+        PRODUCTION_ORIGIN
       )
 
     if(
       parsed.origin !==
-      'https://nfl-squads.vercel.app'
+      PRODUCTION_ORIGIN
     ){
       return '/dashboard'
     }
@@ -78,6 +79,8 @@ export async function login(
     String(
       formData.get('email')||''
     )
+      .trim()
+      .toLowerCase()
 
   const password=
     String(
@@ -119,7 +122,6 @@ export async function login(
     )
   }
 
-  // Login telemetry is useful, but it must never prevent a successful login.
   try{
     await withDeadline(
       Promise.resolve(

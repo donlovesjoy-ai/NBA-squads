@@ -99,7 +99,7 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
               const score=started&&g.home_score!=null&&g.away_score!=null?`${g.away_score}-${g.home_score}`:''
               return <GameZoomLink
                 key={g.id}
-                href={`/game/${g.id}?squad=${selected.id}`}
+                href={`/game-details?game=${g.id}&squad=${selected.id}`}
                 style={{...bs,background:'transparent',borderRadius:6,padding:'1px 2px 2px',margin:'0',fontSize:9,width:'100%',minWidth:0,boxSizing:'border-box',textDecoration:'none',color:'inherit'}}
               >
                 <div style={{textAlign:'center',display:'grid',gridTemplateRows:'auto auto auto auto auto',gap:1,justifyItems:'center',alignItems:'center'}}>

@@ -74,7 +74,7 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
       {list.map((s:any)=>{const t:any=Array.isArray(s.nba_teams)?s.nba_teams[0]:s.nba_teams;const active=s.id===selected.id;return <Link key={s.id} href={`/schedule?squad=${s.id}&month=${monthKey(year,month)}`} style={{whiteSpace:'nowrap',padding:'9px 12px',borderRadius:999,border:'1px solid #bbb',background:active?'#111':'#fff',color:active?'#fff':'#111',fontWeight:800}}>{t?.abbreviation||s.squad_name}</Link>})}
     </div>
 
-    <section className="card" style={{padding:8,overflow:'hidden'}}>
+    <section data-calendar-panel="true" className="card" style={{padding:8,overflow:'hidden'}}>
       <div style={{display:'grid',gridTemplateColumns:'42px 1fr 42px',alignItems:'center',gap:6}}>
         <Link href={mk(prev.year,prev.month)} style={{fontSize:28,textAlign:'center'}}>‹</Link>
         <div style={{textAlign:'center'}}>

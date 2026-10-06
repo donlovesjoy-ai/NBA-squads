@@ -51,7 +51,7 @@ export default function GameZoomLink({href,children,style}:{href:string;children
       pointerEvents:'none',
       transform:'translateZ(0)',
       willChange:'left, top, width, height',
-      transition:'left 420ms cubic-bezier(.16,.84,.2,1), top 420ms cubic-bezier(.16,.84,.2,1), width 420ms cubic-bezier(.16,.84,.2,1), height 420ms cubic-bezier(.16,.84,.2,1)'
+      transition:'left 630ms cubic-bezier(.16,.84,.2,1), top 630ms cubic-bezier(.16,.84,.2,1), width 630ms cubic-bezier(.16,.84,.2,1), height 630ms cubic-bezier(.16,.84,.2,1)'
     })
 
     document.body.appendChild(clone)
@@ -72,7 +72,7 @@ export default function GameZoomLink({href,children,style}:{href:string;children
     })
 
     // Start loading the destination while the logo is still moving.
-    window.setTimeout(()=>router.push(href),180)
+    window.setTimeout(()=>router.push(href),270)
 
     // Safety cleanup in case navigation is interrupted.
     window.setTimeout(()=>{
@@ -81,7 +81,7 @@ export default function GameZoomLink({href,children,style}:{href:string;children
         if(panel)panel.style.opacity=''
         setLeaving(false)
       }
-    },1400)
+    },1800)
   }
 
   return <button

@@ -72,7 +72,21 @@ export default async function TeamSchedulePage({params}:{params:Promise<{squadId
         const selectionText=miss?'AUTO L':pick?`${lineTeam}${spread!=='—'?` ${spread}`:''}`:''
         const score=g.status==='final'?`${g.away_score}-${g.home_score}`:fmtTime(g.scheduled_tipoff_time)
         const color=statusColor(pick?.result,miss)
-        return <div key={g.id} style={{display:'grid',gridTemplateColumns:'42px minmax(92px,1.25fr) 70px 58px 44px',gap:3,alignItems:'center',padding:'9px 2px',borderBottom:'1px solid #e5e7eb',fontSize:11}}>
+        return <Link
+          key={g.id}
+          href={`/game-details?game=${g.id}&squad=${squad.id}`}
+          style={{
+            display:'grid',
+            gridTemplateColumns:'42px minmax(92px,1.25fr) 70px 58px 44px',
+            gap:3,
+            alignItems:'center',
+            padding:'9px 2px',
+            borderBottom:'1px solid #e5e7eb',
+            fontSize:11,
+            color:'inherit',
+            textDecoration:'none'
+          }}
+        >
           <div style={{textAlign:'center',fontWeight:900,lineHeight:1.05,fontSize:10}}>
             <div>{dp.dow}</div>
             <div style={{marginTop:2,fontSize:9}}>{dp.date}</div>
@@ -84,7 +98,7 @@ export default async function TeamSchedulePage({params}:{params:Promise<{squadId
           <div style={{fontWeight:900,color,whiteSpace:'nowrap',fontSize:10,textAlign:'center'}}>{selectionText}</div>
           <div style={{textAlign:'center',fontWeight:900,whiteSpace:'nowrap',fontSize:10}}>{score}</div>
           <div style={{textAlign:'center',fontWeight:900,whiteSpace:'nowrap',fontSize:10}}>{record}</div>
-        </div>
+        </Link>
       })}
     </section>}
 

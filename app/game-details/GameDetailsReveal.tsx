@@ -6,7 +6,7 @@ import type { ReactNode } from 'react'
 const OVERLAY_ID='nba-game-logo-transition'
 const TRAVEL_MS=756
 const SETTLE_PAUSE_MS=100
-const FADE_MS=220
+const FADE_MS=320
 
 export default function GameDetailsReveal({children}:{children:ReactNode}){
   const wrapRef=useRef<HTMLDivElement>(null)

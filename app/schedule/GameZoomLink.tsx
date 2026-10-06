@@ -25,7 +25,7 @@ export default function GameZoomLink({href,children,style}:{href:string;children
       font:'inherit',
       cursor:'pointer',
       transform:leaving?'scale(1.22)':'scale(1)',
-      opacity:leaving?.18:1,
+      opacity:leaving ? .18 : 1,
       transition:'transform 220ms cubic-bezier(.2,.8,.2,1), opacity 220ms ease',
       transformOrigin:'center center'
     }}

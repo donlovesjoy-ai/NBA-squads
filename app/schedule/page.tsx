@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '../../lib/supabase/server'
 import { Nav } from '../components'
+import GameZoomLink from './GameZoomLink'
 
 const TZ='America/New_York'
 const DAYS=['SUN','MON','TUE','WED','THU','FRI','SAT']
@@ -96,8 +97,12 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
               const pick:any=pickMap.get(g.id),miss=forcedMap.has(g.id),started=gameStarted(g.status),bs=borderStyle(g.status,pick?.result,miss)
               const selection:any=pick?teamMap.get(pick.selection_team_id):null
               const score=started&&g.home_score!=null&&g.away_score!=null?`${g.away_score}-${g.home_score}`:''
-              return <details key={g.id} style={{...bs,background:'transparent',borderRadius:6,padding:'1px 2px 2px',margin:'0',fontSize:9,width:'100%',minWidth:0,boxSizing:'border-box'}}>
-                <summary style={{cursor:'pointer',listStyle:'none',textAlign:'center',display:'grid',gridTemplateRows:'auto auto auto auto auto',gap:1,justifyItems:'center',alignItems:'center'}}>
+              return <GameZoomLink
+                key={g.id}
+                href={`/game/${g.id}?squad=${selected.id}`}
+                style={{...bs,background:'transparent',borderRadius:6,padding:'1px 2px 2px',margin:'0',fontSize:9,width:'100%',minWidth:0,boxSizing:'border-box',textDecoration:'none',color:'inherit'}}
+              >
+                <div style={{textAlign:'center',display:'grid',gridTemplateRows:'auto auto auto auto auto',gap:1,justifyItems:'center',alignItems:'center'}}>
                   <div style={{width:'100%',display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'end',minHeight:12,lineHeight:1}}>
                     <div style={{justifySelf:'start',fontSize:10,fontWeight:800,opacity:.55,paddingLeft:1}}>{day}</div>
                     <div style={{justifySelf:'center',fontWeight:900,fontSize:5.5,lineHeight:1,paddingBottom:1}}>{home?'VS':'@'}</div>
@@ -109,15 +114,8 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
                   {score&&<div style={{fontWeight:900,fontSize:9,lineHeight:1,whiteSpace:'nowrap',marginTop:1}}>{score}</div>}
                   {pick?.result&&<div style={{fontWeight:900,textTransform:'uppercase',fontSize:7,marginTop:1}}>{pick.result}</div>}
                   {miss&&<div style={{fontWeight:900,fontSize:7,marginTop:1}}>AUTO L</div>}
-                </summary>
-                <div style={{borderTop:'1px solid rgba(0,0,0,.15)',marginTop:4,paddingTop:4,lineHeight:1.35,fontSize:9}}>
-                  <div><b>Score:</b> {score||'—'}</div>
-                  <div><b>Selection:</b> {miss?'Missed required game':selection?.abbreviation||'No pick'}</div>
-                  <div><b>Spread:</b> {spreadForTeam(g,selected.nba_team_id)}</div>
-                  <div><b>ATS:</b> {miss?'Loss':pick?.result?String(pick.result).toUpperCase():'—'}</div>
-                  {pick?.ats_margin!=null&&<div><b>ATS margin:</b> {Number(pick.ats_margin)>0?'+':''}{pick.ats_margin}</div>}
                 </div>
-              </details>
+              </GameZoomLink>
             })}
           </div>
         })}

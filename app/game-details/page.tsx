@@ -93,7 +93,7 @@ export default async function GamePage({searchParams}:{searchParams:Promise<{gam
         </div>
         <div style={{textAlign:'center'}}>
           <div style={{fontSize:12,fontWeight:900,opacity:.55}}>@</div>
-          {scoreAvailable?<div style={{fontSize:28,fontWeight:950,whiteSpace:'nowrap',marginTop:4}}>{game.away_score}–{game.home_score}</div>:<div style={{fontSize:15,fontWeight:900,marginTop:4}}>VS</div>}
+          {scoreAvailable?<div style={{fontSize:28,fontWeight:950,whiteSpace:'nowrap',marginTop:4}}>{game.away_score}–{game.home_score}</div>:<div style={{fontSize:15,fontWeight:900,marginTop:4}}>@</div>}
           <div style={{fontSize:11,fontWeight:800,opacity:.6,marginTop:4,textTransform:'uppercase'}}>{game.status}</div>
         </div>
         <div style={{textAlign:'center',minWidth:0}}>

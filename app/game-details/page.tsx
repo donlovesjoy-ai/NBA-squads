@@ -75,14 +75,10 @@ export default async function GamePage({searchParams}:{searchParams:Promise<{gam
   const opponent:any=selectedTeamId===game.home_team_id?away:selectedTeamId===game.away_team_id?home:away
 
   return <main style={{maxWidth:760,margin:'0 auto',padding:'14px 12px 64px'}}>
-    <div style={{height:'25vw',minHeight:86,maxHeight:180,display:'flex',alignItems:'flex-start',justifyContent:'center'}}>
-      {opponent?.logo_url&&<img
-        src={opponent.logo_url}
-        alt={`${opponent.name} logo`}
-        style={{width:'25vw',height:'25vw',minWidth:86,minHeight:86,maxWidth:180,maxHeight:180,objectFit:'contain',display:'block'}}
-      />}
-    </div>
-    <GameDetailsReveal>
+    <GameDetailsReveal
+      logoUrl={opponent?.logo_url}
+      logoAlt={`${opponent?.name||'Opponent'} logo`}
+    >
     <div style={{margin:'10px 0 14px',textAlign:'center'}}>
       <Link href={selected?`/schedule?squad=${selected.id}`:'/schedule'} style={{fontWeight:900,textDecoration:'none'}}>← Back to calendar</Link>
     </div>

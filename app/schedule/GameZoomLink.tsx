@@ -39,6 +39,8 @@ export default function GameZoomLink({href,children,style}:{href:string;children
     const clone=logo.cloneNode(true) as HTMLImageElement
     clone.id=OVERLAY_ID
     clone.setAttribute('aria-hidden','true')
+    clone.dataset.transitionStartedAt=String(Date.now())
+    clone.dataset.transitionDuration='630'
     Object.assign(clone.style,{
       position:'fixed',
       left:`${rect.left}px`,

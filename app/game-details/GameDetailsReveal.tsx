@@ -61,8 +61,7 @@ export default function GameDetailsReveal({children}:{children:ReactNode}){
     ref={wrapRef}
     style={{
       opacity:visible?1:0,
-      transform:visible?'translateY(0)':'translateY(4px)',
-      transition:`opacity ${FADE_MS}ms ease, transform ${FADE_MS}ms ease`
+      transition:`opacity ${FADE_MS}ms ease`
     }}
   >
     {children}

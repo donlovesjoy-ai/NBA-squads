@@ -12,9 +12,6 @@ export default function GameZoomLink({href,children,style}:{href:string;children
 
   useEffect(()=>{
     router.prefetch(href)
-    return ()=>{
-      document.body.style.overflow=''
-    }
   },[href,router])
 
   function openGame(event:React.MouseEvent<HTMLButtonElement>){
@@ -32,15 +29,10 @@ export default function GameZoomLink({href,children,style}:{href:string;children
     document.getElementById(OVERLAY_ID)?.remove()
 
     const rect=logo.getBoundingClientRect()
-    const targetSize=window.innerWidth*.25
-    const targetLeft=(window.innerWidth-targetSize)/2
-    const targetTop=14
-
     const clone=logo.cloneNode(true) as HTMLImageElement
     clone.id=OVERLAY_ID
     clone.setAttribute('aria-hidden','true')
-    clone.dataset.transitionStartedAt=String(Date.now())
-    clone.dataset.transitionDuration='756'
+
     Object.assign(clone.style,{
       position:'fixed',
       left:`${rect.left}px`,
@@ -53,37 +45,28 @@ export default function GameZoomLink({href,children,style}:{href:string;children
       pointerEvents:'none',
       transform:'translateZ(0)',
       willChange:'left, top, width, height',
-      transition:'left 756ms cubic-bezier(.16,.84,.2,1), top 756ms cubic-bezier(.16,.84,.2,1), width 756ms cubic-bezier(.16,.84,.2,1), height 756ms cubic-bezier(.16,.84,.2,1)'
+      transition:'none'
     })
 
     document.body.appendChild(clone)
 
     const panel=document.querySelector<HTMLElement>('[data-calendar-panel="true"]')
     if(panel){
-      panel.style.transition='opacity 220ms ease'
+      panel.style.transition='opacity 140ms ease'
       panel.style.opacity='.72'
     }
 
-    requestAnimationFrame(()=>{
-      requestAnimationFrame(()=>{
-        clone.style.left=`${targetLeft}px`
-        clone.style.top=`${targetTop}px`
-        clone.style.width=`${targetSize}px`
-        clone.style.height=`${targetSize}px`
-      })
-    })
+    // Move to the destination almost immediately. The destination page controls
+    // the actual logo flight so it can land exactly in the correct matchup slot.
+    window.setTimeout(()=>router.push(href),40)
 
-    // Start loading the destination while the logo is still moving.
-    window.setTimeout(()=>router.push(href),320)
-
-    // Safety cleanup in case navigation is interrupted.
     window.setTimeout(()=>{
       if(window.location.pathname.includes('/schedule')){
         clone.remove()
         if(panel)panel.style.opacity=''
         setLeaving(false)
       }
-    },1800)
+    },2200)
   }
 
   return <button

@@ -85,32 +85,36 @@ export default async function GamePage({searchParams}:{searchParams:Promise<{gam
     <GameDetailsReveal>
 
     <section className="card" style={{padding:'18px 14px'}}>
-      <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'center',gap:10}}>
-        <div style={{textAlign:'center',minWidth:0}}>
+      <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',gridTemplateRows:'74px auto auto',columnGap:10,rowGap:6,alignItems:'center'}}>
+        <div style={{gridColumn:1,gridRow:1,textAlign:'center',minWidth:0}}>
           {away?.logo_url&&<img
             src={away.logo_url}
             alt={`${away.name} logo`}
             data-logo-transition-target={opponent?.id===away?.id?'true':undefined}
-            style={{width:74,height:74,objectFit:'contain',margin:'0 auto 6px',display:'block'}}
+            style={{width:74,height:74,objectFit:'contain',margin:'0 auto',display:'block'}}
           />}
-          <div style={{fontSize:19,fontWeight:900}}>{away?.abbreviation||'AWAY'}</div>
-          <div style={{fontSize:12,opacity:.65}}>{away?.name}</div>
         </div>
-        <div style={{textAlign:'center'}}>
-          {scoreAvailable?<div style={{fontSize:28,fontWeight:950,whiteSpace:'nowrap',marginTop:4}}>{game.away_score}–{game.home_score}</div>:<div style={{fontSize:15,fontWeight:900,marginTop:4}}>@</div>}
-          <div style={{fontSize:11,fontWeight:900,opacity:.72,marginTop:5,lineHeight:1.15,textTransform:'uppercase'}}>{gameMeta.day} {gameMeta.date}</div>
-          <div style={{fontSize:11,fontWeight:900,opacity:.72,marginTop:2,lineHeight:1.15}}>{gameMeta.time}</div>
-        </div>
-        <div style={{textAlign:'center',minWidth:0}}>
+        <div style={{gridColumn:3,gridRow:1,textAlign:'center',minWidth:0}}>
           {home?.logo_url&&<img
             src={home.logo_url}
             alt={`${home.name} logo`}
             data-logo-transition-target={opponent?.id===home?.id?'true':undefined}
-            style={{width:74,height:74,objectFit:'contain',margin:'0 auto 6px',display:'block'}}
+            style={{width:74,height:74,objectFit:'contain',margin:'0 auto',display:'block'}}
           />}
-          <div style={{fontSize:19,fontWeight:900}}>{home?.abbreviation||'HOME'}</div>
-          <div style={{fontSize:12,opacity:.65}}>{home?.name}</div>
         </div>
+
+        <div style={{gridColumn:1,gridRow:2,textAlign:'center',fontSize:19,fontWeight:900}}>{away?.abbreviation||'AWAY'}</div>
+        <div style={{gridColumn:2,gridRow:2,textAlign:'center'}}>
+          {scoreAvailable?<div style={{fontSize:28,fontWeight:950,whiteSpace:'nowrap'}}>{game.away_score}–{game.home_score}</div>:<div style={{fontSize:15,fontWeight:900}}>@</div>}
+        </div>
+        <div style={{gridColumn:3,gridRow:2,textAlign:'center',fontSize:19,fontWeight:900}}>{home?.abbreviation||'HOME'}</div>
+
+        <div style={{gridColumn:1,gridRow:3,textAlign:'center',fontSize:12,opacity:.65,minWidth:0}}>{away?.name}</div>
+        <div style={{gridColumn:2,gridRow:3,textAlign:'center',alignSelf:'start'}}>
+          <div style={{fontSize:11,fontWeight:900,opacity:.72,lineHeight:1.15,textTransform:'uppercase'}}>{gameMeta.day} {gameMeta.date}</div>
+          <div style={{fontSize:11,fontWeight:900,opacity:.72,marginTop:2,lineHeight:1.15}}>{gameMeta.time}</div>
+        </div>
+        <div style={{gridColumn:3,gridRow:3,textAlign:'center',fontSize:12,opacity:.65,minWidth:0}}>{home?.name}</div>
       </div>
 
       <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginTop:18,textAlign:'center'}}>

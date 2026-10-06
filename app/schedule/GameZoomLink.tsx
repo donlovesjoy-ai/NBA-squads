@@ -40,7 +40,7 @@ export default function GameZoomLink({href,children,style}:{href:string;children
     clone.id=OVERLAY_ID
     clone.setAttribute('aria-hidden','true')
     clone.dataset.transitionStartedAt=String(Date.now())
-    clone.dataset.transitionDuration='630'
+    clone.dataset.transitionDuration='756'
     Object.assign(clone.style,{
       position:'fixed',
       left:`${rect.left}px`,
@@ -53,7 +53,7 @@ export default function GameZoomLink({href,children,style}:{href:string;children
       pointerEvents:'none',
       transform:'translateZ(0)',
       willChange:'left, top, width, height',
-      transition:'left 630ms cubic-bezier(.16,.84,.2,1), top 630ms cubic-bezier(.16,.84,.2,1), width 630ms cubic-bezier(.16,.84,.2,1), height 630ms cubic-bezier(.16,.84,.2,1)'
+      transition:'left 756ms cubic-bezier(.16,.84,.2,1), top 756ms cubic-bezier(.16,.84,.2,1), width 756ms cubic-bezier(.16,.84,.2,1), height 756ms cubic-bezier(.16,.84,.2,1)'
     })
 
     document.body.appendChild(clone)
@@ -74,7 +74,7 @@ export default function GameZoomLink({href,children,style}:{href:string;children
     })
 
     // Start loading the destination while the logo is still moving.
-    window.setTimeout(()=>router.push(href),270)
+    window.setTimeout(()=>router.push(href),320)
 
     // Safety cleanup in case navigation is interrupted.
     window.setTimeout(()=>{

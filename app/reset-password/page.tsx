@@ -29,82 +29,9 @@ export default function ResetPassword(){
   useEffect(()=>{
     let mounted=true
 
-    const establishRecoverySession=
+    const verifyRecoverySession=
       async()=>{
         try{
-          const hash=
-            window.location.hash
-              .replace(/^#/,'')
-
-          const params=
-            new URLSearchParams(
-              hash
-            )
-
-          const accessToken=
-            params.get(
-              'access_token'
-            )
-
-          const refreshToken=
-            params.get(
-              'refresh_token'
-            )
-
-          const type=
-            params.get(
-              'type'
-            )
-
-          const validRecoveryLink=
-            Boolean(
-              accessToken &&
-              refreshToken &&
-              type==='recovery'
-            )
-
-          if(!validRecoveryLink){
-            if(mounted){
-              setError(
-                'Your reset link is invalid or has expired. Please request a new password reset email.'
-              )
-            }
-
-            return
-          }
-
-          /*
-           * Remove recovery credentials from
-           * the browser address bar immediately.
-           */
-          window.history
-            .replaceState(
-              {},
-              document.title,
-              window.location.pathname
-            )
-
-          const {
-            error:setSessionError
-          }=
-            await supabase.auth
-              .setSession({
-                access_token:
-                  accessToken!,
-                refresh_token:
-                  refreshToken!
-              })
-
-          if(setSessionError){
-            if(mounted){
-              setError(
-                'Unable to verify this reset link. Please request a new password reset email.'
-              )
-            }
-
-            return
-          }
-
           const {
             data:{
               user
@@ -122,9 +49,6 @@ export default function ResetPassword(){
             userError ||
             !user
           ){
-            await supabase.auth
-              .signOut()
-
             setError(
               'Your reset link is invalid or has expired. Please request a new password reset email.'
             )
@@ -144,7 +68,7 @@ export default function ResetPassword(){
         }
       }
 
-    establishRecoverySession()
+    verifyRecoverySession()
 
     return ()=>{
       mounted=false
@@ -201,29 +125,6 @@ export default function ResetPassword(){
     setSaving(true)
 
     const {
-      data:{
-        user
-      },
-      error:userError
-    }=
-      await supabase.auth
-        .getUser()
-
-    if(
-      userError ||
-      !user
-    ){
-      setSaving(false)
-      setReady(false)
-
-      setError(
-        'Your reset session has expired. Please request a new password reset email.'
-      )
-
-      return
-    }
-
-    const {
       error:updateError
     }=
       await supabase.auth
@@ -277,15 +178,22 @@ export default function ResetPassword(){
         )}
 
         {error && (
-          <p className="status">
-            {error}
-          </p>
+          <>
+            <p className="status">
+              {error}
+            </p>
+            <p>
+              <a href="/forgot-password">
+                Request a new reset email
+              </a>
+            </p>
+          </>
         )}
 
         {ready && (
           <>
             <p className="muted">
-              Enter your new NFL Squads
+              Enter your new NBA Squads
               password below.
             </p>
 

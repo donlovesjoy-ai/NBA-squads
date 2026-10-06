@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { createClient } from '../../../lib/supabase/server'
-import { Nav } from '../../components'
+import { createClient } from '../../lib/supabase/server'
+import { Nav } from '../components'
 
 const TZ='America/New_York'
 

@@ -5,11 +5,13 @@ import GameDetailsReveal from './GameDetailsReveal'
 
 const TZ='America/New_York'
 
-function formatTip(value:string){
-  return new Intl.DateTimeFormat('en-US',{
-    timeZone:TZ,weekday:'short',month:'short',day:'numeric',
-    hour:'numeric',minute:'2-digit',hour12:true
-  }).format(new Date(value)).replace(/\s?[AP]M$/,'')
+function formatGameMeta(value:string){
+  const d=new Date(value)
+  const day=new Intl.DateTimeFormat('en-US',{timeZone:TZ,weekday:'short'}).format(d)
+  const dateParts=new Intl.DateTimeFormat('en-US',{timeZone:TZ,month:'numeric',day:'numeric'}).formatToParts(d)
+  const get=(type:string)=>dateParts.find(p=>p.type===type)?.value||''
+  const time=new Intl.DateTimeFormat('en-US',{timeZone:TZ,hour:'numeric',minute:'2-digit',hour12:true}).format(d).replace(/\s?[AP]M$/,'')
+  return {day,date:`${get('month')}-${get('day')}`,time}
 }
 function resultLabel(result?:string|null,missed=false){
   if(missed)return 'L'
@@ -73,6 +75,7 @@ export default async function GamePage({searchParams}:{searchParams:Promise<{gam
   const scoreAvailable=game.home_score!=null&&game.away_score!=null
   const selectedTeamId=selected?.nba_team_id
   const opponent:any=selectedTeamId===game.home_team_id?away:selectedTeamId===game.away_team_id?home:away
+  const gameMeta=formatGameMeta(game.scheduled_tipoff_time)
 
   return <main style={{maxWidth:760,margin:'0 auto',padding:'10px 12px 64px'}}>
     <div style={{margin:'2px 0 12px',textAlign:'center'}}>
@@ -82,7 +85,6 @@ export default async function GamePage({searchParams}:{searchParams:Promise<{gam
     <GameDetailsReveal>
 
     <section className="card" style={{padding:'18px 14px'}}>
-      <div style={{textAlign:'center',fontSize:13,fontWeight:800,opacity:.65,marginBottom:14}}>{formatTip(game.scheduled_tipoff_time)} · Eastern</div>
       <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'center',gap:10}}>
         <div style={{textAlign:'center',minWidth:0}}>
           {away?.logo_url&&<img
@@ -95,9 +97,9 @@ export default async function GamePage({searchParams}:{searchParams:Promise<{gam
           <div style={{fontSize:12,opacity:.65}}>{away?.name}</div>
         </div>
         <div style={{textAlign:'center'}}>
-          <div style={{fontSize:12,fontWeight:900,opacity:.55}}>@</div>
           {scoreAvailable?<div style={{fontSize:28,fontWeight:950,whiteSpace:'nowrap',marginTop:4}}>{game.away_score}–{game.home_score}</div>:<div style={{fontSize:15,fontWeight:900,marginTop:4}}>@</div>}
-          <div style={{fontSize:11,fontWeight:800,opacity:.6,marginTop:4,textTransform:'uppercase'}}>{game.status}</div>
+          <div style={{fontSize:11,fontWeight:900,opacity:.72,marginTop:5,lineHeight:1.15,textTransform:'uppercase'}}>{gameMeta.day} {gameMeta.date}</div>
+          <div style={{fontSize:11,fontWeight:900,opacity:.72,marginTop:2,lineHeight:1.15}}>{gameMeta.time}</div>
         </div>
         <div style={{textAlign:'center',minWidth:0}}>
           {home?.logo_url&&<img

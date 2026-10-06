@@ -1,22 +1,8 @@
- 'use client'
+'use client'
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { createClient } from '@supabase/supabase-js'
-
-function createRecoveryClient(){
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    {
-      auth:{
-        autoRefreshToken:true,
-        persistSession:true,
-        detectSessionInUrl:true
-      }
-    }
-  )
-}
+import { createClient } from '@/lib/supabase/client'
 
 export default function ForgotPassword(){
   const [email,setEmail]=useState('')
@@ -33,7 +19,7 @@ export default function ForgotPassword(){
     setSending(true)
 
     const supabase=
-      createRecoveryClient()
+      createClient()
 
     const {error}=
       await supabase.auth
@@ -41,7 +27,7 @@ export default function ForgotPassword(){
           email.trim().toLowerCase(),
           {
             redirectTo:
-              `${window.location.origin}/reset-password`
+              `${window.location.origin}/auth/callback?next=/reset-password`
           }
         )
 
@@ -79,7 +65,7 @@ export default function ForgotPassword(){
         <p className="muted">
           Enter the email address
           associated with your
-          NFL Squads account.
+          NBA Squads account.
         </p>
 
         {sent ? (

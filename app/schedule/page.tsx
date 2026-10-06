@@ -14,8 +14,14 @@ function etParts(value:string){
 }
 
 function monthKey(year:number,month:number){return `${year}-${String(month).padStart(2,'0')}`}
-function shiftMonth(year:number,month:number,delta:number){const d=new Date(Date.UTC(year,month-1+delta,1));return {year:d.getUTCFullYear(),month:d.getUTCMonth()+1}}
+const SEASON_MONTHS=[
+  {year:2026,month:10},{year:2026,month:11},{year:2026,month:12},
+  {year:2027,month:1},{year:2027,month:2},{year:2027,month:3},{year:2027,month:4}
+]
+const MONTH_QUOTA=new Map<string,number>([['2026-10',5],['2026-11',10],['2026-12',10],['2027-01',10],['2027-02',10],['2027-03',5],['2027-04',5]])
 function monthTitle(year:number,month:number){return new Intl.DateTimeFormat('en-US',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(Date.UTC(year,month-1,1)))}
+function resultCode(value?:string|null){const v=String(value||'').toUpperCase();if(v==='W'||v==='WIN')return 'W';if(v==='L'||v==='LOSS')return 'L';if(v==='P'||v==='PUSH')return 'P';return ''}
+function recordLabel(w:number,l:number,p:number){return `${w}-${l}${p?`-${p}`:''}`}
 function spreadForTeam(game:any,teamId:number){if(game.home_spread==null)return '—';const n=Number(game.home_spread);const v=game.home_team_id===teamId?n:-n;return `${v>0?'+':''}${v}`}
 function gameStarted(status?:string){const s=String(status||'').toLowerCase();return !['','scheduled','created','pre','pregame'].includes(s)}
 function borderStyle(status:string|undefined,result?:string,forced=false){
@@ -40,9 +46,15 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
 
   const nowEt=etParts(new Date().toISOString())
   const parsed=p.month?.match(/^(\d{4})-(\d{2})$/)
-  const year=parsed?Number(parsed[1]):nowEt.year
-  const month=parsed?Number(parsed[2]):nowEt.month
-  const prev=shiftMonth(year,month,-1),next=shiftMonth(year,month,1)
+  const requestedMonth=parsed?{year:Number(parsed[1]),month:Number(parsed[2])}:null
+  let monthIndex=SEASON_MONTHS.findIndex(m=>m.year===requestedMonth?.year&&m.month===requestedMonth?.month)
+  if(monthIndex<0){
+    monthIndex=SEASON_MONTHS.findIndex(m=>m.year===nowEt.year&&m.month===nowEt.month)
+    if(monthIndex<0)monthIndex=0
+  }
+  const {year,month}=SEASON_MONTHS[monthIndex]
+  const prev=SEASON_MONTHS[(monthIndex-1+SEASON_MONTHS.length)%SEASON_MONTHS.length]
+  const next=SEASON_MONTHS[(monthIndex+1)%SEASON_MONTHS.length]
 
   if(!selected){
     return <main className="wrap"><h1 style={{textAlign:'center'}}>Schedule</h1><Nav commissioner={profile?.role==='commissioner'}/><div className="card" style={{textAlign:'center'}}>No NBA Squads teams have been assigned yet.</div></main>
@@ -58,6 +70,25 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
   const pickMap=new Map((picks||[]).map((x:any)=>[x.game_id,x]))
   const forcedMap=new Map((forced||[]).map((x:any)=>[x.game_id,x]))
   const monthGames=allGames.filter(g=>{const d=etParts(g.scheduled_tipoff_time);return d.year===year&&d.month===month})
+  let overallWins=0,overallLosses=0,overallPushes=0
+  let monthWins=0,monthLosses=0,monthPushes=0,monthPlayed=0
+  allGames.forEach((g:any)=>{
+    const pick:any=pickMap.get(g.id)
+    const forcedLoss=forcedMap.has(g.id)
+    const code=forcedLoss?'L':resultCode(pick?.result)
+    if(!code)return
+    if(code==='W')overallWins++
+    else if(code==='L')overallLosses++
+    else if(code==='P')overallPushes++
+    const d=etParts(g.scheduled_tipoff_time)
+    if(d.year===year&&d.month===month){
+      monthPlayed++
+      if(code==='W')monthWins++
+      else if(code==='L')monthLosses++
+      else if(code==='P')monthPushes++
+    }
+  })
+  const monthQuota=MONTH_QUOTA.get(monthKey(year,month))??0
   const byDay=new Map<number,any[]>()
   monthGames.forEach(g=>{const day=etParts(g.scheduled_tipoff_time).day;byDay.set(day,[...(byDay.get(day)||[]),g])})
   const firstDow=new Date(Date.UTC(year,month-1,1)).getUTCDay()
@@ -70,23 +101,32 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
   return <main style={{maxWidth:1120,margin:'0 auto',padding:'28px 6px 60px'}}>
     <h1 style={{textAlign:'center',marginBottom:8}}>Schedule</h1>
     <Nav commissioner={profile?.role==='commissioner'}/>
-    <div style={{display:'flex',gap:8,overflowX:'auto',padding:'4px 2px 12px',marginTop:12}}>
-      {list.map((s:any)=>{const t:any=Array.isArray(s.nba_teams)?s.nba_teams[0]:s.nba_teams;const active=s.id===selected.id;return <Link key={s.id} href={`/schedule?squad=${s.id}&month=${monthKey(year,month)}`} style={{whiteSpace:'nowrap',padding:'9px 12px',borderRadius:999,border:'1px solid #bbb',background:active?'#111':'#fff',color:active?'#fff':'#111',fontWeight:800}}>{t?.abbreviation||s.squad_name}</Link>})}
-    </div>
-
     <section data-calendar-panel="true" className="card" style={{padding:8,overflow:'hidden'}}>
       <div style={{display:'grid',gridTemplateColumns:'42px 1fr 42px',alignItems:'center',gap:6}}>
         <Link href={mk(prev.year,prev.month)} style={{fontSize:28,textAlign:'center'}}>‹</Link>
         <div style={{textAlign:'center'}}>
           <div style={{fontSize:25,fontWeight:900}}>{monthTitle(year,month)}</div>
-          <div style={{fontWeight:800,marginTop:3}}>{selected.squad_name} · {nbaTeam?.name}</div>
-          <div style={{fontSize:13,opacity:.65,marginTop:3}}>All times Eastern</div>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginTop:5,fontWeight:900}}>
+            {nbaTeam?.logo_url&&<img src={nbaTeam.logo_url} alt={`${nbaTeam.name} logo`} style={{width:30,height:30,objectFit:'contain'}}/>}
+            <span>{nbaTeam?.name||selected.squad_name}</span>
+          </div>
         </div>
         <Link href={mk(next.year,next.month)} style={{fontSize:28,textAlign:'center'}}>›</Link>
       </div>
-      <div style={{textAlign:'center',margin:'12px 0 4px'}}><Link href={`/team-schedule/${selected.id}`} style={{textDecoration:'underline',fontWeight:800}}>View full team schedule</Link></div>
+      <div style={{textAlign:'center',margin:'12px 0 4px'}}><Link href={`/team-schedule/${selected.id}`} style={{textDecoration:'underline',fontWeight:800}}>View Season Schedule</Link></div>
 
-      <div style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',marginTop:14,borderTop:'1px solid #c8c8c8',borderLeft:'1px solid #c8c8c8'}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',marginTop:14}}>
+        <div style={{gridColumn:'1 / span 2',padding:'2px 4px 9px',alignSelf:'end'}}>
+          <div style={{fontSize:12,fontWeight:900,opacity:.6,textTransform:'uppercase'}}>Overall Record</div>
+          <div style={{fontSize:26,fontWeight:950,lineHeight:1.05}}>{recordLabel(overallWins,overallLosses,overallPushes)}</div>
+        </div>
+        <div style={{gridColumn:'6 / span 2',padding:'2px 4px 9px',textAlign:'right',alignSelf:'end'}}>
+          <div style={{fontSize:11,fontWeight:900}}>Games Played: {monthPlayed} / {monthQuota}</div>
+          <div style={{fontSize:11,fontWeight:900,marginTop:3}}>Monthly Record: {recordLabel(monthWins,monthLosses,monthPushes)}</div>
+        </div>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',borderTop:'1px solid #c8c8c8',borderLeft:'1px solid #c8c8c8'}}>
         {DAYS.map(d=><div key={d} style={{padding:'7px 0',textAlign:'center',fontWeight:900,fontSize:10,borderRight:'1px solid #c8c8c8',borderBottom:'1px solid #c8c8c8',background:'#f3f4f6'}}>{d}</div>)}
         {cells.map((day,index)=>{
           const gamesForDay=day?byDay.get(day)||[]:[]
@@ -119,9 +159,6 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
             })}
           </div>
         })}
-      </div>
-      <div style={{display:'flex',gap:14,flexWrap:'wrap',justifyContent:'center',marginTop:12,fontSize:12,fontWeight:700}}>
-        <span>🟩 ATS win</span><span>🟥 ATS loss / automatic loss</span><span>🟨 Push</span><span>⬜ No pick</span>
       </div>
     </section>
   </main>

@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '../../lib/supabase/server'
-import { Nav } from '../components'
 import GameDetailsReveal from './GameDetailsReveal'
 
 const TZ='America/New_York'
@@ -40,7 +39,6 @@ export default async function GamePage({searchParams}:{searchParams:Promise<{gam
   const id=Number(sp.game)
   if(!Number.isFinite(id))redirect('/schedule')
 
-  const {data:profile}=await supabase.from('users').select('role').eq('id',user.id).maybeSingle()
   const {data:game}=await supabase.from('games')
     .select('id,season_year,home_team_id,away_team_id,scheduled_tipoff_time,status,home_score,away_score,home_spread,closing_spread,total,closing_total,odds_bookmaker,closing_bookmaker')
     .eq('id',id).maybeSingle()
@@ -85,11 +83,8 @@ export default async function GamePage({searchParams}:{searchParams:Promise<{gam
       />}
     </div>
     <GameDetailsReveal>
-    <h1 style={{textAlign:'center',marginTop:8,marginBottom:8}}>Game Details</h1>
-    <Nav commissioner={profile?.role==='commissioner'}/>
-
-    <div style={{margin:'14px 0 12px'}}>
-      <Link href={selected?`/schedule?squad=${selected.id}`:'/schedule'} style={{fontWeight:800,textDecoration:'none'}}>← Back to calendar</Link>
+    <div style={{margin:'10px 0 14px',textAlign:'center'}}>
+      <Link href={selected?`/schedule?squad=${selected.id}`:'/schedule'} style={{fontWeight:900,textDecoration:'none'}}>← Back to calendar</Link>
     </div>
 
     <section className="card" style={{padding:'18px 14px'}}>

@@ -222,6 +222,18 @@ export default function MatchupDecision({
             ? 'Viewing another owner’s decision'
             : <>Bet window closes in <span style={{fontSize:14}}>{formatCountdown(lock-now)}</span></>}
       </div>
+
+      <div
+        style={{
+          marginTop:5,
+          textAlign:'center',
+          fontSize:9,
+          lineHeight:1.3,
+          opacity:.58
+        }}
+      >
+        * Line subject to change. Line determined at opening tip-off.
+      </div>
     </div>
   )
 }

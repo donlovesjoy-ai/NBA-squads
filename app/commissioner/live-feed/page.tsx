@@ -1,26 +1,18 @@
- import { redirect } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../../components'
-import {
-  saveLiveFeed
-} from './actions'
+import { saveLiveFeed, runLiveSync } from './actions'
 
 type LiveFeedSettings={
   provider:string|null
-  bookmaker:string|null
   enabled:boolean|null
   last_sync_at:string|null
   last_sync_status:string|null
   last_sync_message:string|null
-  api_requests_used:number|null
   api_requests_remaining:number|null
   api_requests_last:number|null
   api_quota_total:number|null
-  weekly_api_credits:number|null
-  weekly_api_week_start:string|null
 }
-
-const WEEKLY_CREDIT_LIMIT=98
 
 export default async function LiveFeed({
   searchParams
@@ -31,489 +23,157 @@ export default async function LiveFeed({
     error?:string
   }>
 }){
-  const sp=
-    await searchParams
+  const sp=await searchParams
+  const supabase=await createClient()
+  const {data:{user}}=await supabase.auth.getUser()
 
-  const supabase=
-    await createClient()
+  if(!user)redirect('/login')
 
-  const {
-    data:{
-      user
-    }
-  }=
-    await supabase.auth
-      .getUser()
+  const {data:profile}=await supabase
+    .from('users')
+    .select('role')
+    .eq('id',user.id)
+    .maybeSingle()
 
-  if(!user){
-    redirect('/login')
-  }
+  if(profile?.role!=='commissioner')redirect('/dashboard')
 
-  const {
-    data:profile
-  }=
-    await supabase
-      .from('users')
-      .select('role')
-      .eq('id',user.id)
-      .maybeSingle()
+  const {data:settingsData}=await supabase
+    .from('integration_settings')
+    .select('provider,enabled,last_sync_at,last_sync_status,last_sync_message,api_requests_remaining,api_requests_last,api_quota_total')
+    .eq('id',1)
+    .single()
 
-  if(
-    profile?.role!==
-    'commissioner'
-  ){
-    redirect('/dashboard')
-  }
+  const settings=settingsData as LiveFeedSettings|null
 
-  const {
-    data:settingsData
-  }=
-    await supabase
-      .from(
-        'integration_settings'
-      )
-      .select(
-        'provider,bookmaker,enabled,last_sync_at,last_sync_status,last_sync_message,api_requests_used,api_requests_remaining,api_requests_last,api_quota_total,weekly_api_credits,weekly_api_week_start'
-      )
-      .eq(
-        'id',
-        1
-      )
-      .single()
-
-  const settings=
-    settingsData as LiveFeedSettings|null
-
-  const weeklyUsed=
-    settings?.weekly_api_credits ??
-    0
-
-  const weeklyRemaining=
-    Math.max(
-      WEEKLY_CREDIT_LIMIT-
-      weeklyUsed,
-      0
-    )
-
-  const weeklyPercent=
-    Math.min(
-      Math.max(
-        weeklyUsed/
-        WEEKLY_CREDIT_LIMIT*
-        100,
-        0
-      ),
-      100
-    )
-
-  const monthlyUsed=
-    settings?.api_requests_used
-
-  const monthlyRemaining=
-    settings?.api_requests_remaining
-
-  const monthlyTotal=
-    settings?.api_quota_total
-
-  const monthlyPercent=
-    monthlyUsed!==null &&
-    monthlyUsed!==undefined &&
-    monthlyTotal!==null &&
-    monthlyTotal!==undefined &&
-    monthlyTotal>0
-      ? Math.min(
-          Math.max(
-            monthlyUsed/
-            monthlyTotal*
-            100,
-            0
-          ),
-          100
-        )
-      : null
+  const errorMessage=
+    sp.error==='no-key'
+      ? 'No Big Balls API key is saved yet.'
+      : sp.error==='connection'
+        ? 'Big Balls connection test failed. Check the saved key and try again.'
+        : sp.error
+          ? 'Could not save the live-feed settings.'
+          : ''
 
   return (
     <main className="wrap">
       <div className="top">
         <div>
-          <div className="big">
-            NBA SQUADS
-          </div>
-
-          <div className="muted">
-            Commissioner — Live Odds & Results
-          </div>
+          <div className="big">NBA SQUADS</div>
+          <div className="muted">Commissioner — Big Balls Sports Data</div>
         </div>
       </div>
 
       <Nav commissioner/>
 
-      {sp.saved && (
-        <p className="status">
-          Live-feed settings saved.
-        </p>
-      )}
-
-      {sp.synced && (
-        <p className="status">
-          Live sync completed.
-        </p>
-      )}
-
-      {sp.error && (
-        <p className="status">
-          Live feed error: {sp.error}
-        </p>
-      )}
+      {sp.saved&&<p className="status">Big Balls settings saved.</p>}
+      {sp.synced&&<p className="status">Big Balls connection verified.</p>}
+      {errorMessage&&<p className="status">Live feed error: {errorMessage}</p>}
 
       <section className="card">
-        <h2>
-          API Credit Usage
-        </h2>
-
-        <div
-          style={{
-            display:'grid',
-            gridTemplateColumns:
-              'repeat(auto-fit,minmax(220px,1fr))',
-            gap:16,
-            marginTop:16
-          }}
-        >
-          <div
-            style={{
-              border:'1px solid #ddd',
-              borderRadius:10,
-              padding:16
-            }}
-          >
-            <div
-              className="muted"
-              style={{
-                fontWeight:700
-              }}
-            >
-              NBA Squads Weekly Budget
-            </div>
-
-            <div
-              style={{
-                fontSize:'1.8rem',
-                fontWeight:900,
-                marginTop:4
-              }}
-            >
-              {weeklyUsed} / {WEEKLY_CREDIT_LIMIT}
-            </div>
-
-            <div
-              className="muted"
-              style={{
-                marginTop:2
-              }}
-            >
-              {weeklyRemaining} credits remaining
-            </div>
-
-            <div
-              style={{
-                height:10,
-                borderRadius:999,
-                background:'#e5e5e5',
-                overflow:'hidden',
-                marginTop:12
-              }}
-            >
-              <div
-                style={{
-                  height:'100%',
-                  width:`${weeklyPercent}%`,
-                  background:
-                    weeklyUsed>=90
-                      ? '#b91c1c'
-                      : weeklyUsed>=72
-                        ? '#b45309'
-                        : '#15803d'
-                }}
-              />
-            </div>
-
-            <p
-              className="muted"
-              style={{
-                marginBottom:0
-              }}
-            >
-              Weekly usage tracking is available for the NBA feed. The saved API key remains hidden after entry.
-            </p>
-          </div>
-
-          <div
-            style={{
-              border:'1px solid #ddd',
-              borderRadius:10,
-              padding:16
-            }}
-          >
-            <div
-              className="muted"
-              style={{
-                fontWeight:700
-              }}
-            >
-              The Odds API Account
-            </div>
-
-            {monthlyUsed!==null &&
-             monthlyUsed!==undefined &&
-             monthlyRemaining!==null &&
-             monthlyRemaining!==undefined ? (
-              <>
-                <div
-                  style={{
-                    fontSize:'1.8rem',
-                    fontWeight:900,
-                    marginTop:4
-                  }}
-                >
-                  {monthlyUsed}
-                  {monthlyTotal
-                    ? ` / ${monthlyTotal}`
-                    : ''}
-                </div>
-
-                <div
-                  className="muted"
-                  style={{
-                    marginTop:2
-                  }}
-                >
-                  {monthlyRemaining} credits remaining
-                </div>
-
-                {monthlyPercent!==null && (
-                  <div
-                    style={{
-                      height:10,
-                      borderRadius:999,
-                      background:'#e5e5e5',
-                      overflow:'hidden',
-                      marginTop:12
-                    }}
-                  >
-                    <div
-                      style={{
-                        height:'100%',
-                        width:`${monthlyPercent}%`,
-                        background:
-                          monthlyPercent>=90
-                            ? '#b91c1c'
-                            : monthlyPercent>=75
-                              ? '#b45309'
-                              : '#15803d'
-                      }}
-                    />
-                  </div>
-                )}
-
-                <p
-                  className="muted"
-                  style={{
-                    marginBottom:0
-                  }}
-                >
-                  These numbers come directly
-                  from The Odds API usage headers.
-                </p>
-              </>
-            ):(
-              <p
-                className="muted"
-                style={{
-                  marginBottom:0
-                }}
-              >
-                Usage information will appear
-                after the next successful
-                The Odds API request.
-              </p>
-            )}
-          </div>
-        </div>
-
-        {settings?.api_requests_last!==null &&
-         settings?.api_requests_last!==undefined && (
-          <p
-            className="muted"
-            style={{
-              marginTop:14
-            }}
-          >
-            Last API request used{' '}
-            <b>
-              {settings.api_requests_last}
-            </b>{' '}
-            credit
-            {settings.api_requests_last===1
-              ? ''
-              : 's'}.
-          </p>
-        )}
-      </section>
-
-      <section className="card">
-        <h2>
-          Automatic NBA Feed
-        </h2>
+        <h2>Big Balls API</h2>
 
         <p>
-          NBA Squads can store the live-data API key here. Automatic NBA polling will be connected after the NBA provider and feed schedule are finalized.
+          NBA Squads is now configured for Big Balls Sports Data instead of The Odds API.
+          The API key stays server-side and is never displayed back on this page.
         </p>
 
-        <p>
-          The saved key is never displayed back on this page. Enter a new key only when you want to replace the current one.
-        </p>
-
-        <p>
-          The live-sync engine is intentionally not connected to the NFL function. NBA syncing will use its own feed and schedule.
-        </p>
-
-        <p>
-          <b>
-            Official league line:
-          </b>{' '}
-          the selected bookmaker&apos;s spread and game total can be used for NBA closing-line tracking once the NBA sync is connected.
-        </p>
-
-        <form
-          action={saveLiveFeed}
-        >
-          <label>
-            The Odds API key
-          </label>
-
+        <form action={saveLiveFeed}>
+          <label>Big Balls API key</label>
           <input
             name="api_key"
             type="password"
             defaultValue=""
-            placeholder="Enter new API key only to replace current key"
+            placeholder="Enter a new key only to replace the saved key"
             autoComplete="new-password"
           />
 
-          <p
-            className="muted"
-            style={{
-              marginTop:4
-            }}
-          >
-            Leave blank to keep the existing
-            saved API key.
+          <p className="muted" style={{marginTop:4}}>
+            Leave this blank to keep the existing saved key.
           </p>
 
-          <label>
-            Official bookmaker
-          </label>
-
-          <select
-            name="bookmaker"
-            defaultValue={
-              settings?.bookmaker ||
-              'draftkings'
-            }
-          >
-            <option value="draftkings">
-              DraftKings
-            </option>
-
-            <option value="fanduel">
-              FanDuel
-            </option>
-
-            <option value="betmgm">
-              BetMGM
-            </option>
-
-            <option value="caesars">
-              Caesars
-            </option>
-          </select>
-
-          <label
-            style={{
-              display:'flex',
-              gap:10,
-              alignItems:'center'
-            }}
-          >
+          <label style={{display:'flex',gap:10,alignItems:'center'}}>
             <input
-              style={{
-                width:'auto'
-              }}
+              style={{width:'auto'}}
               type="checkbox"
               name="enabled"
-              defaultChecked={
-                !!settings?.enabled
-              }
+              defaultChecked={!!settings?.enabled}
             />
-
-            Enable automatic live sync
+            Enable Big Balls live-data integration
           </label>
 
-          <button
-            className="submit"
-            type="submit"
-          >
-            Save Live Feed
-          </button>
+          <button className="submit" type="submit">Save Big Balls Feed</button>
         </form>
       </section>
 
       <section className="card">
-        <h2>
-          Feed Status
-        </h2>
+        <h2>Connection & Quota</h2>
 
-        <p>
-          <b>
-            Status:
-          </b>{' '}
-          {settings?.last_sync_status ||
-           'Not run yet'}
-        </p>
+        <div style={{
+          display:'grid',
+          gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',
+          gap:12,
+          marginTop:12
+        }}>
+          <div style={{border:'1px solid #ddd',borderRadius:10,padding:14}}>
+            <div className="muted" style={{fontWeight:800}}>Provider</div>
+            <div style={{fontSize:20,fontWeight:900,marginTop:4}}>
+              {settings?.provider==='big_balls'?'Big Balls':'Not converted yet'}
+            </div>
+          </div>
 
-        <p>
-          <b>
-            Last sync:
-          </b>{' '}
-          {settings?.last_sync_at
-            ? new Date(
-                settings.last_sync_at
-              ).toLocaleString(
-                'en-US',
-                {
-                  timeZone:
-                    'America/New_York',
-                  timeZoneName:'short'
-                }
-              )
-            : 'Never'}
-        </p>
+          <div style={{border:'1px solid #ddd',borderRadius:10,padding:14}}>
+            <div className="muted" style={{fontWeight:800}}>Daily allowance</div>
+            <div style={{fontSize:20,fontWeight:900,marginTop:4}}>
+              {settings?.api_quota_total??'—'}
+            </div>
+            <div className="muted" style={{fontSize:12,marginTop:3}}>
+              Requests per day reported by your key
+            </div>
+          </div>
 
-        {settings?.weekly_api_week_start && (
-          <p>
-            <b>
-              Current API week:
-            </b>{' '}
-            {settings.weekly_api_week_start}
+          <div style={{border:'1px solid #ddd',borderRadius:10,padding:14}}>
+            <div className="muted" style={{fontWeight:800}}>Last request cost</div>
+            <div style={{fontSize:20,fontWeight:900,marginTop:4}}>
+              {settings?.api_requests_last??'—'}
+            </div>
+            <div className="muted" style={{fontSize:12,marginTop:3}}>
+              Big Balls counts each HTTP request as one request
+            </div>
+          </div>
+        </div>
+
+        {settings?.api_requests_remaining!==null&&settings?.api_requests_remaining!==undefined&&(
+          <p className="muted" style={{marginTop:12}}>
+            Current limiting-bucket remaining from the last response: <b>{settings.api_requests_remaining}</b>.
           </p>
         )}
 
-        <p className="muted">
-          {settings?.last_sync_message ||
-           ''}
+        <form action={runLiveSync}>
+          <button className="submit" type="submit">Test Big Balls Connection</button>
+        </form>
+      </section>
+
+      <section className="card">
+        <h2>Feed Status</h2>
+
+        <p><b>Status:</b> {settings?.last_sync_status||'Not tested yet'}</p>
+        <p>
+          <b>Last test:</b>{' '}
+          {settings?.last_sync_at
+            ? new Date(settings.last_sync_at).toLocaleString('en-US',{
+                timeZone:'America/New_York',
+                timeZoneName:'short'
+              })
+            : 'Never'}
         </p>
 
-        <p className="muted">NBA automatic sync is not connected yet.</p>
+        <p className="muted">{settings?.last_sync_message||''}</p>
+
+        <p className="muted">
+          This page now verifies the Big Balls key directly. The next step is connecting the
+          specific NBA feeds—injuries, schedules/scores, standings, lineups and player data—to
+          Supabase without reusing any NFL sync function.
+        </p>
       </section>
     </main>
   )

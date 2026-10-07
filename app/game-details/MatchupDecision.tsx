@@ -40,7 +40,8 @@ export default function MatchupDecision({
   total:number|string|null
   lockTime:string
 }){
-  const [choice,setChoice]=useState<Choice>('no_pick')
+  const [draftChoice,setDraftChoice]=useState<Choice>('no_pick')
+  const [committedChoice,setCommittedChoice]=useState<Choice>('no_pick')
   const [now,setNow]=useState(()=>Date.now())
 
   useEffect(()=>{
@@ -52,22 +53,42 @@ export default function MatchupDecision({
   const closed=!Number.isFinite(lock)||now>=lock
   const totalText=total==null?'—':String(total)
 
-  const box=(selected:boolean)=>({
-    width:'100%',
-    minHeight:66,
-    border:selected?'2px solid #111':'1px solid rgba(128,128,128,.32)',
-    borderRadius:10,
-    background:selected?'rgba(17,17,17,.08)':'transparent',
-    color:'inherit',
-    padding:'8px 6px',
-    display:'flex',
-    alignItems:'center',
-    justifyContent:'center',
-    gap:7,
-    cursor:closed?'default':'pointer',
-    opacity:closed&&!selected?.68:1,
-    font:'inherit' as const
-  })
+  const choose=(next:Choice)=>{
+    if(!closed)setDraftChoice(next)
+  }
+
+  const decide=()=>{
+    if(!closed)setCommittedChoice(draftChoice)
+  }
+
+  const box=(choice:Choice,extra?:Record<string,unknown>)=>{
+    const committed=committedChoice===choice
+    const pending=draftChoice===choice&&!committed
+
+    return {
+      width:'100%',
+      minHeight:66,
+      border:committed
+        ? '2px solid #16a34a'
+        : pending
+          ? '2px solid #111'
+          : '1px solid rgba(128,128,128,.32)',
+      borderRadius:10,
+      background:pending
+        ? 'rgba(17,17,17,.08)'
+        : 'transparent',
+      color:'inherit',
+      padding:'8px 6px',
+      display:'flex',
+      alignItems:'center',
+      justifyContent:'center',
+      gap:7,
+      cursor:closed?'default':'pointer',
+      opacity:closed&&!committed?.68:1,
+      font:'inherit' as const,
+      ...extra
+    }
+  }
 
   return (
     <div style={{marginTop:18,borderTop:'1px solid rgba(128,128,128,.24)',paddingTop:14}}>
@@ -75,76 +96,70 @@ export default function MatchupDecision({
         <div style={{display:'grid',gap:8}}>
           <button
             type="button"
-            onClick={()=>!closed&&setChoice('away')}
-            aria-pressed={choice==='away'}
-            style={box(choice==='away')}
+            onClick={()=>choose('away')}
+            aria-pressed={draftChoice==='away'}
+            style={box('away')}
           >
-            {away.logoUrl&&<img src={away.logoUrl} alt="" style={{width:30,height:30,objectFit:'contain'}}/>}
-            <div style={{textAlign:'left'}}>
-              <div style={{fontSize:10,fontWeight:900,opacity:.55}}>AWAY</div>
-              <div style={{fontSize:15,fontWeight:950}}>{away.abbreviation} {lineText(away.line)}</div>
-            </div>
+            {away.logoUrl&&<img src={away.logoUrl} alt="" style={{width:34,height:34,objectFit:'contain'}}/>}
+            <div style={{fontSize:17,fontWeight:950}}>{lineText(away.line)}</div>
           </button>
 
           <button
             type="button"
-            onClick={()=>!closed&&setChoice('home')}
-            aria-pressed={choice==='home'}
-            style={box(choice==='home')}
+            onClick={()=>choose('home')}
+            aria-pressed={draftChoice==='home'}
+            style={box('home')}
           >
-            {home.logoUrl&&<img src={home.logoUrl} alt="" style={{width:30,height:30,objectFit:'contain'}}/>}
-            <div style={{textAlign:'left'}}>
-              <div style={{fontSize:10,fontWeight:900,opacity:.55}}>HOME</div>
-              <div style={{fontSize:15,fontWeight:950}}>{home.abbreviation} {lineText(home.line)}</div>
-            </div>
+            {home.logoUrl&&<img src={home.logoUrl} alt="" style={{width:34,height:34,objectFit:'contain'}}/>}
+            <div style={{fontSize:17,fontWeight:950}}>{lineText(home.line)}</div>
           </button>
         </div>
 
         <button
           type="button"
-          onClick={()=>!closed&&setChoice('no_pick')}
-          aria-pressed={choice==='no_pick'}
-          style={{
-            ...box(choice==='no_pick'),
+          onClick={()=>choose('no_pick')}
+          aria-pressed={draftChoice==='no_pick'}
+          style={box('no_pick',{
             minHeight:140,
             flexDirection:'column'
-          }}
+          })}
         >
-          <div style={{fontSize:11,fontWeight:900,opacity:.55}}>DEFAULT</div>
           <div style={{fontSize:18,fontWeight:950,textAlign:'center'}}>NO PICK</div>
         </button>
 
         <div style={{display:'grid',gap:8}}>
           <button
             type="button"
-            onClick={()=>!closed&&setChoice('over')}
-            aria-pressed={choice==='over'}
-            style={box(choice==='over')}
+            onClick={()=>choose('over')}
+            aria-pressed={draftChoice==='over'}
+            style={box('over')}
           >
-            <div style={{textAlign:'center'}}>
-              <div style={{fontSize:10,fontWeight:900,opacity:.55}}>OVER</div>
-              <div style={{fontSize:16,fontWeight:950}}>O {totalText}</div>
+            <div style={{textAlign:'center',fontSize:16,fontWeight:950}}>
+              OVER {totalText}
             </div>
           </button>
 
           <button
             type="button"
-            onClick={()=>!closed&&setChoice('under')}
-            aria-pressed={choice==='under'}
-            style={box(choice==='under')}
+            onClick={()=>choose('under')}
+            aria-pressed={draftChoice==='under'}
+            style={box('under')}
           >
-            <div style={{textAlign:'center'}}>
-              <div style={{fontSize:10,fontWeight:900,opacity:.55}}>UNDER</div>
-              <div style={{fontSize:16,fontWeight:950}}>U {totalText}</div>
+            <div style={{textAlign:'center',fontSize:16,fontWeight:950}}>
+              UNDER {totalText}
             </div>
           </button>
         </div>
       </div>
 
-      <div
+      <button
+        type="button"
+        onClick={decide}
+        disabled={closed}
         style={{
           marginTop:10,
           width:'100%',
+          border:'none',
           borderRadius:10,
           background:'#111',
           color:'#fff',
@@ -152,11 +167,13 @@ export default function MatchupDecision({
           textAlign:'center',
           fontSize:14,
           fontWeight:950,
-          letterSpacing:.2
+          letterSpacing:.2,
+          cursor:closed?'default':'pointer',
+          opacity:closed?.55:1
         }}
       >
         MAKE A DECISION
-      </div>
+      </button>
 
       <div
         aria-live="polite"

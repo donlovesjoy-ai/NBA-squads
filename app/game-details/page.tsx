@@ -99,6 +99,31 @@ export default async function GamePage({searchParams}:{searchParams:Promise<{gam
   const home:any=teamMap.get(game.home_team_id)
   const away:any=teamMap.get(game.away_team_id)
 
+  let freeMatchup:any=null
+  const {data:{session}}=await supabase.auth.getSession()
+  if(session&&away?.abbreviation&&home?.abbreviation){
+    try{
+      const resp=await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/nba-free-matchup`,
+        {
+          method:'POST',
+          headers:{
+            Authorization:`Bearer ${session.access_token}`,
+            'content-type':'application/json'
+          },
+          body:JSON.stringify({
+            away:away.abbreviation,
+            home:home.abbreviation
+          }),
+          cache:'no-store'
+        }
+      )
+      if(resp.ok)freeMatchup=await resp.json()
+    }catch{
+      freeMatchup=null
+    }
+  }
+
   const {data:squads}=await supabase.from('squads')
     .select('id,user_id,squad_name,owner_name,owner_email,nba_team_id')
     .eq('season_year',game.season_year)
@@ -179,6 +204,82 @@ export default async function GamePage({searchParams}:{searchParams:Promise<{gam
           <div style={{fontSize:13,fontWeight:900,marginTop:5}}>{game.closing_bookmaker||game.odds_bookmaker||'—'}</div>
         </div>
       </div>
+    </section>
+
+    <section className="card" style={{padding:'14px',marginTop:14}}>
+      <div style={{fontSize:17,fontWeight:950}}>Team Form &amp; Betting Splits</div>
+
+      {freeMatchup?(
+        <>
+          <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',gap:8,alignItems:'center',marginTop:12,textAlign:'center'}}>
+            <div style={{fontSize:18,fontWeight:950}}>{freeMatchup.away?.abbr||away?.abbreviation}</div>
+            <div style={{fontSize:10,fontWeight:900,opacity:.5}}>CURRENT SEASON</div>
+            <div style={{fontSize:18,fontWeight:950}}>{freeMatchup.home?.abbr||home?.abbreviation}</div>
+          </div>
+
+          {[
+            ['W/L',freeMatchup.away?.overall,freeMatchup.home?.overall],
+            ['Road / Home',freeMatchup.away?.road,freeMatchup.home?.home],
+            ['Last 10',freeMatchup.away?.last10,freeMatchup.home?.last10],
+            ['ATS','—','—'],
+            ['Road / Home ATS','—','—'],
+            ['O/U','—','—'],
+            ['Road / Home O/U','—','—']
+          ].map((row:any)=>(
+            <div key={row[0]} style={{display:'grid',gridTemplateColumns:'1fr 110px 1fr',gap:8,alignItems:'center',padding:'9px 0',borderTop:'1px solid rgba(128,128,128,.14)',fontSize:12}}>
+              <div style={{textAlign:'center',fontWeight:900}}>{row[1]||'0-0'}</div>
+              <div style={{textAlign:'center',fontWeight:950,opacity:.68}}>{row[0]}</div>
+              <div style={{textAlign:'center',fontWeight:900}}>{row[2]||'0-0'}</div>
+            </div>
+          ))}
+
+          <div style={{fontSize:10,opacity:.55,marginTop:8,lineHeight:1.4}}>
+            ATS and over/under fields are intentionally left blank on the free tier because Big Balls does not expose those historical betting splits without paid odds/intelligence access.
+          </div>
+        </>
+      ):(
+        <div style={{fontSize:12,opacity:.65,marginTop:8}}>Free Big Balls team-form data is temporarily unavailable.</div>
+      )}
+    </section>
+
+    <section className="card" style={{padding:'14px',marginTop:14}}>
+      <div style={{fontSize:17,fontWeight:950}}>Head-to-Head · Last 10</div>
+
+      {freeMatchup?.h2h?(
+        <>
+          <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',gap:8,alignItems:'center',marginTop:10,textAlign:'center'}}>
+            <div>
+              <div style={{fontSize:10,fontWeight:900,opacity:.5}}>{away?.abbreviation}</div>
+              <div style={{fontSize:24,fontWeight:950}}>{freeMatchup.h2h.awayWins}</div>
+            </div>
+            <div style={{fontSize:11,fontWeight:900,opacity:.55}}>WINS</div>
+            <div>
+              <div style={{fontSize:10,fontWeight:900,opacity:.5}}>{home?.abbreviation}</div>
+              <div style={{fontSize:24,fontWeight:950}}>{freeMatchup.h2h.homeWins}</div>
+            </div>
+          </div>
+
+          <div style={{display:'grid',gridTemplateColumns:'72px 46px minmax(0,1fr) 54px 54px',gap:5,padding:'9px 0 6px',fontSize:9,fontWeight:900,opacity:.55,borderBottom:'1px solid rgba(128,128,128,.22)',marginTop:8}}>
+            <div>DATE</div><div>HOME</div><div>RESULT</div><div style={{textAlign:'center'}}>ATS</div><div style={{textAlign:'center'}}>O/U</div>
+          </div>
+
+          {(freeMatchup.h2h.games||[]).map((g:any,i:number)=>(
+            <div key={`${g.date}-${i}`} style={{display:'grid',gridTemplateColumns:'72px 46px minmax(0,1fr) 54px 54px',gap:5,padding:'8px 0',fontSize:11,borderBottom:'1px solid rgba(128,128,128,.12)',alignItems:'center'}}>
+              <div>{g.date?new Intl.DateTimeFormat('en-US',{timeZone:TZ,month:'short',day:'2-digit',year:'2-digit'}).format(new Date(g.date)):'—'}</div>
+              <div style={{fontWeight:900}}>{g.home||'—'}</div>
+              <div style={{fontWeight:900,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{g.score||'—'}</div>
+              <div style={{textAlign:'center',opacity:.45}}>—</div>
+              <div style={{textAlign:'center',opacity:.45}}>—</div>
+            </div>
+          ))}
+
+          {(freeMatchup.h2h.games||[]).length===0&&(
+            <div style={{padding:'12px 0 2px',fontSize:12,opacity:.65}}>No recent head-to-head games were returned by the free archive feed.</div>
+          )}
+        </>
+      ):(
+        <div style={{fontSize:12,opacity:.65,marginTop:8}}>Free head-to-head history is temporarily unavailable.</div>
+      )}
     </section>
 
     <div style={{marginTop:14,padding:'8px 10px',borderRadius:10,background:'rgba(128,128,128,.10)',fontSize:11,fontWeight:900,textAlign:'center'}}>

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '../../lib/supabase/server'
 import { Nav } from '../components'
 import GameZoomLink from './GameZoomLink'
+import OwnerCalendarSelect from './OwnerCalendarSelect'
 
 const TZ='America/New_York'
 const DAYS=['SUN','MON','TUE','WED','THU','FRI','SAT']
@@ -24,12 +25,14 @@ function resultCode(value?:string|null){const v=String(value||'').toUpperCase();
 function recordLabel(w:number,l:number,p:number){return `${w}-${l}${p?`-${p}`:''}`}
 function spreadForTeam(game:any,teamId:number){if(game.home_spread==null)return '—';const n=Number(game.home_spread);const v=game.home_team_id===teamId?n:-n;return `${v>0?'+':''}${v}`}
 function gameStarted(status?:string){const s=String(status||'').toLowerCase();return !['','scheduled','created','pre','pregame'].includes(s)}
-function borderStyle(status:string|undefined,result?:string,forced=false){
-  if(!gameStarted(status))return {border:'0 solid transparent'}
-  if(forced||result==='loss')return {border:'2px solid #ef4444'}
-  if(result==='win')return {border:'2px solid #22c55e'}
-  if(result==='push')return {border:'2px solid #f59e0b'}
-  return {border:'2px solid #2563eb'}
+function calendarResultStyle(status:string|undefined,pick:any,forced=false){
+  if(!gameStarted(status))return {border:'0 solid transparent',background:'#fff',filter:'none'}
+  if(!pick)return {border:'2px solid #9ca3af',background:'#f3f4f6',filter:'grayscale(1)'}
+  const code=forced?'L':resultCode(pick?.result)
+  if(code==='W')return {border:'2px solid #16a34a',background:'rgba(34,197,94,.10)',filter:'none'}
+  if(code==='L')return {border:'2px solid #dc2626',background:'rgba(239,68,68,.10)',filter:'none'}
+  if(code==='P')return {border:'2px solid #2563eb',background:'rgba(37,99,235,.10)',filter:'none'}
+  return {border:'2px solid #2563eb',background:'rgba(37,99,235,.06)',filter:'none'}
 }
 
 export default async function SchedulePage({searchParams}:{searchParams:Promise<{squad?:string;month?:string}>}){
@@ -57,7 +60,7 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
   const next=SEASON_MONTHS[(monthIndex+1)%SEASON_MONTHS.length]
 
   if(!selected){
-    return <main className="wrap"><h1 style={{textAlign:'center'}}>Schedule</h1><Nav commissioner={profile?.role==='commissioner'}/><div className="card" style={{textAlign:'center'}}>No NBA Squads teams have been assigned yet.</div></main>
+    return <main className="wrap"><h1 style={{textAlign:'center'}}>Calendar</h1><Nav commissioner={profile?.role==='commissioner'}/><div className="card" style={{textAlign:'center'}}>No NBA Squads teams have been assigned yet.</div></main>
   }
 
   const {data:teams}=await supabase.from('nba_teams').select('id,name,abbreviation,logo_url')
@@ -99,7 +102,7 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
   const mk=(y:number,m:number)=>`/schedule?squad=${selected.id}&month=${monthKey(y,m)}`
 
   return <main style={{maxWidth:1120,margin:'0 auto',padding:'28px 6px 60px'}}>
-    <h1 style={{textAlign:'center',marginBottom:8}}>Schedule</h1>
+    <h1 style={{textAlign:'center',marginBottom:8}}>Calendar</h1>
     <Nav commissioner={profile?.role==='commissioner'}/>
     <section data-calendar-panel="true" className="card" style={{padding:8,overflow:'hidden'}}>
       <div style={{display:'grid',gridTemplateColumns:'42px 1fr 42px',alignItems:'center',gap:6}}>
@@ -113,16 +116,28 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
         </div>
         <Link href={mk(next.year,next.month)} style={{fontSize:28,textAlign:'center'}}>›</Link>
       </div>
-      <div style={{textAlign:'center',margin:'12px 0 4px'}}><Link href={`/team-schedule/${selected.id}`} style={{textDecoration:'underline',fontWeight:800}}>View Season Schedule</Link></div>
-
-      <div style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',marginTop:14}}>
-        <div style={{gridColumn:'1 / span 2',padding:'2px 4px 9px',alignSelf:'end'}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',marginTop:14,alignItems:'end'}}>
+        <div style={{gridColumn:'1 / span 2',padding:'2px 4px 9px',textAlign:'center'}}>
           <div style={{fontSize:12,fontWeight:900,opacity:.6,textTransform:'uppercase'}}>Overall Record</div>
-          <div style={{fontSize:26,fontWeight:950,lineHeight:1.05}}>{recordLabel(overallWins,overallLosses,overallPushes)}</div>
+          <div style={{fontSize:26,fontWeight:950,lineHeight:1.05,marginTop:4}}>{recordLabel(overallWins,overallLosses,overallPushes)}</div>
         </div>
-        <div style={{gridColumn:'6 / span 2',padding:'2px 4px 9px',textAlign:'right',alignSelf:'end'}}>
-          <div style={{fontSize:11,fontWeight:900}}>Games Played: {monthPlayed} / {monthQuota}</div>
-          <div style={{fontSize:11,fontWeight:900,marginTop:3}}>Monthly Record: {recordLabel(monthWins,monthLosses,monthPushes)}</div>
+
+        <div style={{gridColumn:'3 / span 3',padding:'2px 4px 9px',textAlign:'center'}}>
+          <OwnerCalendarSelect
+            owners={list.map((s:any)=>({
+              id:s.id,
+              label:s.owner_name||s.squad_name||`Owner ${s.id}`
+            }))}
+            selectedId={selected.id}
+            month={monthKey(year,month)}
+          />
+        </div>
+
+        <div style={{gridColumn:'6 / span 2',padding:'2px 4px 9px',textAlign:'center'}}>
+          <div style={{fontSize:11,fontWeight:900,opacity:.6,textTransform:'uppercase'}}>Games Played</div>
+          <div style={{fontSize:17,fontWeight:950,marginTop:2}}>{monthPlayed} / {monthQuota}</div>
+          <div style={{fontSize:11,fontWeight:900,opacity:.6,textTransform:'uppercase',marginTop:7}}>Monthly Record</div>
+          <div style={{fontSize:17,fontWeight:950,marginTop:2}}>{recordLabel(monthWins,monthLosses,monthPushes)}</div>
         </div>
       </div>
 
@@ -134,13 +149,14 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
             {gamesForDay.length===0&&day&&<div style={{fontSize:10,fontWeight:800,opacity:.55,paddingLeft:2,lineHeight:1.05}}>{day}</div>}
             {gamesForDay.map((g:any)=>{
               const d=etParts(g.scheduled_tipoff_time),opponentId=g.home_team_id===selected.nba_team_id?g.away_team_id:g.home_team_id,opp:any=teamMap.get(opponentId),home=g.home_team_id===selected.nba_team_id
-              const pick:any=pickMap.get(g.id),miss=forcedMap.has(g.id),started=gameStarted(g.status),bs=borderStyle(g.status,pick?.result,miss)
+              const pick:any=pickMap.get(g.id),miss=forcedMap.has(g.id),started=gameStarted(g.status),bs=calendarResultStyle(g.status,pick,miss)
               const selection:any=pick?teamMap.get(pick.selection_team_id):null
               const score=started&&g.home_score!=null&&g.away_score!=null?`${g.away_score}-${g.home_score}`:''
+              const selectionLabel=started?(pick?(selection?.abbreviation||'PICK'):'NO PICK'):d.time
               return <GameZoomLink
                 key={g.id}
                 href={`/game-details?game=${g.id}&squad=${selected.id}`}
-                style={{...bs,background:'transparent',borderRadius:6,padding:'1px 2px 2px',margin:'0',fontSize:9,width:'100%',minWidth:0,boxSizing:'border-box',textDecoration:'none',color:'inherit'}}
+                style={{...bs,borderRadius:6,padding:'1px 2px 2px',margin:'0',fontSize:9,width:'100%',minWidth:0,boxSizing:'border-box',textDecoration:'none',color:'inherit'}}
               >
                 <div style={{textAlign:'center',display:'grid',gridTemplateRows:'auto auto auto auto auto',gap:1,justifyItems:'center',alignItems:'center'}}>
                   <div style={{width:'100%',display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'end',minHeight:12,lineHeight:1}}>
@@ -150,7 +166,7 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
                   </div>
                   {opp?.logo_url?<img src={opp.logo_url} alt={`${opp.name} logo`} style={{width:31,height:31,objectFit:'contain',display:'block',marginTop:-1}}/>:<div style={{height:31}}/>}
                   <div style={{fontWeight:900,fontSize:11,lineHeight:1,whiteSpace:'nowrap',letterSpacing:'-.2px'}}>{opp?.abbreviation||'TBD'}</div>
-                  <div style={{fontWeight:900,fontSize:5.5,lineHeight:1,whiteSpace:'nowrap'}}>{d.time}</div>
+                  <div style={{fontWeight:900,fontSize:started?7:5.5,lineHeight:1,whiteSpace:'nowrap'}}>{selectionLabel}</div>
                   {score&&<div style={{fontWeight:900,fontSize:9,lineHeight:1,whiteSpace:'nowrap',marginTop:1}}>{score}</div>}
                   {pick?.result&&<div style={{fontWeight:900,textTransform:'uppercase',fontSize:7,marginTop:1}}>{pick.result}</div>}
                   {miss&&<div style={{fontWeight:900,fontSize:7,marginTop:1}}>AUTO L</div>}
@@ -161,5 +177,11 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
         })}
       </div>
     </section>
+
+    <div style={{textAlign:'center',marginTop:14}}>
+      <Link href={`/team-schedule/${selected.id}`} style={{textDecoration:'underline',fontWeight:800}}>
+        View Season Schedule
+      </Link>
+    </div>
   </main>
 }

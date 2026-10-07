@@ -68,7 +68,7 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
   const {data:games}=await supabase.from('games').select('id,home_team_id,away_team_id,scheduled_tipoff_time,status,home_score,away_score,home_spread,closing_spread').eq('season_year',2026).or(`home_team_id.eq.${selected.nba_team_id},away_team_id.eq.${selected.nba_team_id}`).order('scheduled_tipoff_time')
   const allGames=(games||[]) as any[]
   const gameIds=allGames.map(g=>g.id)
-  const {data:picks}=gameIds.length?await supabase.from('picks').select('game_id,selection_team_id,result,ats_margin').eq('squad_id',selected.id).in('game_id',gameIds):{data:[] as any[]}
+  const {data:picks}=gameIds.length?await supabase.from('picks').select('game_id,selection_team_id,pick_type,total_side,result,ats_margin').eq('squad_id',selected.id).in('game_id',gameIds):{data:[] as any[]}
   const {data:forced}=gameIds.length?await supabase.from('forced_losses').select('game_id,reason').eq('squad_id',selected.id).in('game_id',gameIds):{data:[] as any[]}
   const pickMap=new Map((picks||[]).map((x:any)=>[x.game_id,x]))
   const forcedMap=new Map((forced||[]).map((x:any)=>[x.game_id,x]))
@@ -150,9 +150,14 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
             {gamesForDay.map((g:any)=>{
               const d=etParts(g.scheduled_tipoff_time),opponentId=g.home_team_id===selected.nba_team_id?g.away_team_id:g.home_team_id,opp:any=teamMap.get(opponentId),home=g.home_team_id===selected.nba_team_id
               const pick:any=pickMap.get(g.id),miss=forcedMap.has(g.id),started=gameStarted(g.status),bs=calendarResultStyle(g.status,pick,miss)
-              const selection:any=pick?teamMap.get(pick.selection_team_id):null
+              const selection:any=pick?.selection_team_id?teamMap.get(pick.selection_team_id):null
               const score=started&&g.home_score!=null&&g.away_score!=null?`${g.away_score}-${g.home_score}`:''
-              const selectionLabel=started?(pick?(selection?.abbreviation||'PICK'):'NO PICK'):d.time
+              const savedSelection=pick
+                ? pick.pick_type==='total'
+                  ? String(pick.total_side||'').toUpperCase()
+                  : selection?.abbreviation||'PICK'
+                : 'NO PICK'
+              const selectionLabel=started?savedSelection:d.time
               return <GameZoomLink
                 key={g.id}
                 href={`/game-details?game=${g.id}&squad=${selected.id}`}

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '../../lib/supabase/server'
 import GameDetailsReveal from './GameDetailsReveal'
+import MatchupDecision from './MatchupDecision'
 
 const TZ='America/New_York'
 
@@ -90,7 +91,7 @@ export default async function GamePage({searchParams}:{searchParams:Promise<{gam
   if(!Number.isFinite(id))redirect('/schedule')
 
   const {data:game}=await supabase.from('games')
-    .select('id,season_year,home_team_id,away_team_id,scheduled_tipoff_time,status,home_score,away_score,home_spread,closing_spread,total,closing_total,odds_bookmaker,closing_bookmaker')
+    .select('id,season_year,home_team_id,away_team_id,scheduled_tipoff_time,pick_lock_at,status,home_score,away_score,home_spread,closing_spread,total,closing_total,odds_bookmaker,closing_bookmaker')
     .eq('id',id).maybeSingle()
   if(!game)redirect('/schedule')
 
@@ -190,20 +191,22 @@ export default async function GamePage({searchParams}:{searchParams:Promise<{gam
         <div style={{gridColumn:3,gridRow:3,textAlign:'center',fontSize:12,opacity:.65,minWidth:0}}>{home?.name}</div>
       </div>
 
-      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginTop:18,textAlign:'center'}}>
-        <div style={{padding:'10px 6px',borderTop:'1px solid rgba(128,128,128,.3)'}}>
-          <div style={{fontSize:10,fontWeight:900,opacity:.55}}>CAVS LINE</div>
-          <div style={{fontSize:18,fontWeight:900,marginTop:3}}>{selected?teamSpread(game,selected.nba_team_id):'—'}</div>
-        </div>
-        <div style={{padding:'10px 6px',borderTop:'1px solid rgba(128,128,128,.3)'}}>
-          <div style={{fontSize:10,fontWeight:900,opacity:.55}}>TOTAL</div>
-          <div style={{fontSize:18,fontWeight:900,marginTop:3}}>{game.closing_total??game.total??'—'}</div>
-        </div>
-        <div style={{padding:'10px 6px',borderTop:'1px solid rgba(128,128,128,.3)'}}>
-          <div style={{fontSize:10,fontWeight:900,opacity:.55}}>BOOK</div>
-          <div style={{fontSize:13,fontWeight:900,marginTop:5}}>{game.closing_bookmaker||game.odds_bookmaker||'—'}</div>
-        </div>
-      </div>
+      <MatchupDecision
+        away={{
+          abbreviation:away?.abbreviation||'AWAY',
+          name:away?.name||'Away',
+          logoUrl:away?.logo_url||null,
+          line:teamSpread(game,game.away_team_id)
+        }}
+        home={{
+          abbreviation:home?.abbreviation||'HOME',
+          name:home?.name||'Home',
+          logoUrl:home?.logo_url||null,
+          line:teamSpread(game,game.home_team_id)
+        }}
+        total={game.closing_total??game.total??null}
+        lockTime={game.pick_lock_at||game.scheduled_tipoff_time}
+      />
     </section>
 
     <section className="card" style={{padding:'14px',marginTop:14}}>

@@ -133,6 +133,69 @@ export default async function GamePage({searchParams}:{searchParams:Promise<{gam
       </div>
     </section>
 
+    <section className="card" style={{padding:'14px',marginTop:14}}>
+      <div style={{fontSize:17,fontWeight:950}}>Full Game Matchup</div>
+      <div style={{marginTop:10,display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:8}}>
+        <div style={{border:'1px solid rgba(128,128,128,.24)',borderRadius:10,padding:'10px 12px'}}>
+          <div style={{fontSize:10,fontWeight:900,opacity:.55}}>GAME / SCORE FEED</div>
+          <div style={{fontSize:13,fontWeight:900,marginTop:4}}>{game.status?.toUpperCase()||'SCHEDULED'}</div>
+          <div style={{fontSize:12,opacity:.7,marginTop:3}}>
+            {scoreAvailable?`${game.away_score} - ${game.home_score}`:'Awaiting live score data'}
+          </div>
+        </div>
+        <div style={{border:'1px solid rgba(128,128,128,.24)',borderRadius:10,padding:'10px 12px'}}>
+          <div style={{fontSize:10,fontWeight:900,opacity:.55}}>MATCHUP DATA</div>
+          <div style={{fontSize:13,fontWeight:900,marginTop:4}}>{away?.abbreviation||'AWAY'} @ {home?.abbreviation||'HOME'}</div>
+          <div style={{fontSize:12,opacity:.7,marginTop:3}}>Big Balls full-game matchup feed will populate here.</div>
+        </div>
+      </div>
+    </section>
+
+    <section className="card" style={{padding:'14px',marginTop:14}}>
+      <div style={{fontSize:17,fontWeight:950}}>Injury Report</div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:10,marginTop:10}}>
+        {[away,home].map((team:any)=>(
+          <div key={team?.id||team?.abbreviation} style={{border:'1px solid rgba(128,128,128,.24)',borderRadius:10,padding:'10px 12px'}}>
+            <div style={{display:'flex',alignItems:'center',gap:7}}>
+              {team?.logo_url&&<img src={team.logo_url} alt="" style={{width:24,height:24,objectFit:'contain'}}/>}
+              <div style={{fontWeight:900,fontSize:13}}>{team?.abbreviation||'TEAM'}</div>
+            </div>
+            <div style={{fontSize:12,opacity:.65,marginTop:8}}>League-wide NBA injury feed will populate this team&apos;s current injuries here.</div>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <section className="card" style={{padding:'14px',marginTop:14}}>
+      <div style={{fontSize:17,fontWeight:950}}>Starting Lineups &amp; Benches</div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:10,marginTop:10}}>
+        {[away,home].map((team:any)=>(
+          <div key={`lineup-${team?.id||team?.abbreviation}`} style={{border:'1px solid rgba(128,128,128,.24)',borderRadius:10,padding:'10px 12px'}}>
+            <div style={{fontWeight:900,fontSize:13}}>{team?.name||'Team'}</div>
+            <div style={{fontSize:11,fontWeight:900,opacity:.55,marginTop:8}}>STARTERS</div>
+            <div style={{fontSize:12,opacity:.65,marginTop:4}}>Starting five will appear here.</div>
+            <div style={{fontSize:11,fontWeight:900,opacity:.55,marginTop:10}}>BENCH</div>
+            <div style={{fontSize:12,opacity:.65,marginTop:4}}>Bench players will appear here.</div>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <section className="card" style={{padding:'14px',marginTop:14}}>
+      <div style={{fontSize:17,fontWeight:950}}>Player Season Stats</div>
+      <div style={{fontSize:12,opacity:.65,marginTop:8}}>Season statistics for players in this matchup will populate here from Big Balls.</div>
+    </section>
+
+    <section className="card" style={{padding:'14px',marginTop:14}}>
+      <div style={{fontSize:17,fontWeight:950}}>Player Game Logs</div>
+      <div style={{fontSize:12,opacity:.65,marginTop:8}}>Recent game-by-game player performance will populate here.</div>
+    </section>
+
+    <section className="card" style={{padding:'14px',marginTop:14}}>
+      <div style={{fontSize:17,fontWeight:950}}>Statistical Leaders</div>
+      <div style={{fontSize:12,opacity:.65,marginTop:8}}>Relevant league and matchup statistical leaders will populate here.</div>
+    </section>
+
     <section className="card" style={{padding:0,overflow:'hidden',marginTop:14}}>
       <div style={{padding:'13px 14px',fontSize:17,fontWeight:950}}>Player Results</div>
       <div style={{display:'grid',gridTemplateColumns:'minmax(0,1.4fr) .8fr .55fr .75fr',gap:6,padding:'8px 12px',fontSize:9,fontWeight:900,opacity:.6,borderTop:'1px solid rgba(128,128,128,.25)',borderBottom:'1px solid rgba(128,128,128,.25)'}}>

@@ -2,8 +2,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../../components'
 import {
-  saveLiveFeed,
-  runLiveSync
+  saveLiveFeed
 } from './actions'
 
 type LiveFeedSettings={
@@ -138,7 +137,7 @@ export default async function LiveFeed({
       <div className="top">
         <div>
           <div className="big">
-            NFL SQUADS
+            NBA SQUADS
           </div>
 
           <div className="muted">
@@ -194,7 +193,7 @@ export default async function LiveFeed({
                 fontWeight:700
               }}
             >
-              NFL Squads Weekly Budget
+              NBA Squads Weekly Budget
             </div>
 
             <div
@@ -245,10 +244,7 @@ export default async function LiveFeed({
                 marginBottom:0
               }}
             >
-              Weekly counter resets Monday ET.
-              NFL Squads begins conserving credits
-              at 72 and will not exceed the
-              98-credit weekly safety limit.
+              Weekly usage tracking is available for the NBA feed. The saved API key remains hidden after entry.
             </p>
           </div>
 
@@ -367,43 +363,26 @@ export default async function LiveFeed({
 
       <section className="card">
         <h2>
-          Automatic NFL Feed
+          Automatic NBA Feed
         </h2>
 
         <p>
-          NFL Squads uses a credit-controlled
-          polling schedule designed to remain
-          below 100 API credits per NFL week.
-          Odds requests are concentrated near
-          kickoff, when line accuracy matters
-          most.
+          NBA Squads can store the live-data API key here. Automatic NBA polling will be connected after the NBA provider and feed schedule are finalized.
         </p>
 
         <p>
-          On non-game days, odds are checked
-          approximately once per day. On game
-          days, additional checks are concentrated
-          around approximately six hours, two
-          hours, one hour, 30 minutes, 15 minutes,
-          five minutes, and one minute before
-          kickoff.
+          The saved key is never displayed back on this page. Enter a new key only when you want to replace the current one.
         </p>
 
         <p>
-          Once a game begins, odds polling for
-          that kickoff window stops. Live scores
-          are checked approximately every
-          30 minutes until games are final.
+          The live-sync engine is intentionally not connected to the NFL function. NBA syncing will use its own feed and schedule.
         </p>
 
         <p>
           <b>
             Official league line:
           </b>{' '}
-          the selected bookmaker&apos;s spread
-          and game total update before kickoff,
-          then freeze at kickoff as the closing
-          line.
+          the selected bookmaker&apos;s spread and game total can be used for NBA closing-line tracking once the NBA sync is connected.
         </p>
 
         <form
@@ -534,16 +513,7 @@ export default async function LiveFeed({
            ''}
         </p>
 
-        <form
-          action={runLiveSync}
-        >
-          <button
-            className="submit"
-            type="submit"
-          >
-            Run Sync Now
-          </button>
-        </form>
+        <p className="muted">NBA automatic sync is not connected yet.</p>
       </section>
     </main>
   )

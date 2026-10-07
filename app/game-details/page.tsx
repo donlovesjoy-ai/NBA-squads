@@ -136,7 +136,7 @@ export default async function GamePage({searchParams}:{searchParams:Promise<{gam
   const squadIds=squadList.map(s=>s.id)
 
   const {data:picks}=squadIds.length?await supabase.from('picks')
-    .select('squad_id,selection_team_id,result,ats_margin,is_missed,created_at')
+    .select('squad_id,selection_team_id,pick_type,total_side,result,ats_margin,is_missed,created_at')
     .eq('game_id',id)
     .in('squad_id',squadIds):{data:[] as any[]}
   const {data:forced}=squadIds.length?await supabase.from('forced_losses')
@@ -150,6 +150,16 @@ export default async function GamePage({searchParams}:{searchParams:Promise<{gam
   const selectedTeamId=selected?.nba_team_id
   const opponent:any=selectedTeamId===game.home_team_id?away:selectedTeamId===game.away_team_id?home:away
   const gameMeta=formatGameMeta(game.scheduled_tipoff_time)
+  const selectedPick:any=selected?pickMap.get(selected.id):null
+  const initialChoice:('away'|'home'|'no_pick'|'over'|'under')=
+    !selectedPick
+      ? 'no_pick'
+      : selectedPick.pick_type==='total'
+        ? selectedPick.total_side==='under'?'under':'over'
+        : selectedPick.selection_team_id===game.away_team_id
+          ? 'away'
+          : 'home'
+  const canEdit=!!selected&&selected.user_id===user.id
 
   return <main style={{maxWidth:760,margin:'0 auto',padding:'10px 12px 64px'}}>
     <div style={{margin:'2px 0 12px',textAlign:'center'}}>
@@ -192,6 +202,9 @@ export default async function GamePage({searchParams}:{searchParams:Promise<{gam
       </div>
 
       <MatchupDecision
+        gameId={game.id}
+        initialChoice={initialChoice}
+        canEdit={canEdit}
         away={{
           abbreviation:away?.abbreviation||'AWAY',
           name:away?.name||'Away',

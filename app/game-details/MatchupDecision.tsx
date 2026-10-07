@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useTransition } from 'react'
+import { saveMatchupDecision } from './actions'
 
 type TeamOption={
   abbreviation:string
@@ -30,19 +31,27 @@ function lineText(line:string){
 }
 
 export default function MatchupDecision({
+  gameId,
   away,
   home,
   total,
-  lockTime
+  lockTime,
+  initialChoice='no_pick',
+  canEdit=true
 }:{
+  gameId:number
   away:TeamOption
   home:TeamOption
   total:number|string|null
   lockTime:string
+  initialChoice?:Choice
+  canEdit?:boolean
 }){
-  const [draftChoice,setDraftChoice]=useState<Choice>('no_pick')
-  const [committedChoice,setCommittedChoice]=useState<Choice>('no_pick')
+  const [draftChoice,setDraftChoice]=useState<Choice>(initialChoice)
+  const [committedChoice,setCommittedChoice]=useState<Choice>(initialChoice)
+  const [message,setMessage]=useState('')
   const [now,setNow]=useState(()=>Date.now())
+  const [pending,startTransition]=useTransition()
 
   useEffect(()=>{
     const timer=window.setInterval(()=>setNow(Date.now()),250)
@@ -51,40 +60,56 @@ export default function MatchupDecision({
 
   const lock=new Date(lockTime).getTime()
   const closed=!Number.isFinite(lock)||now>=lock
+  const disabled=closed||!canEdit||pending
   const totalText=total==null?'—':String(total)
 
   const choose=(next:Choice)=>{
-    if(!closed)setDraftChoice(next)
+    if(!disabled){
+      setDraftChoice(next)
+      setMessage('')
+    }
   }
 
   const decide=()=>{
-    if(!closed)setCommittedChoice(draftChoice)
+    if(disabled)return
+
+    startTransition(async()=>{
+      const result=await saveMatchupDecision(gameId,draftChoice)
+
+      if(result.ok){
+        setCommittedChoice(draftChoice)
+      }
+
+      setMessage(result.message)
+    })
   }
 
   const box=(choice:Choice,extra?:Record<string,unknown>)=>{
     const committed=committedChoice===choice
-    const pending=draftChoice===choice&&!committed
+    const pendingChoice=draftChoice===choice&&!committed
 
     return {
       width:'100%',
       minHeight:66,
       border:committed
         ? '2px solid #16a34a'
-        : pending
+        : pendingChoice
           ? '2px solid #111'
           : '1px solid rgba(128,128,128,.32)',
       borderRadius:10,
-      background:pending
+      background:pendingChoice
         ? 'rgba(17,17,17,.08)'
-        : 'transparent',
+        : committed
+          ? 'rgba(34,197,94,.06)'
+          : 'transparent',
       color:'inherit',
       padding:'8px 6px',
       display:'flex',
       alignItems:'center',
       justifyContent:'center',
       gap:7,
-      cursor:closed?'default':'pointer',
-      opacity:closed&&!committed?.68:1,
+      cursor:disabled?'default':'pointer',
+      opacity:disabled&&!committed?.68:1,
       font:'inherit' as const,
       ...extra
     }
@@ -155,7 +180,7 @@ export default function MatchupDecision({
       <button
         type="button"
         onClick={decide}
-        disabled={closed}
+        disabled={disabled}
         style={{
           marginTop:10,
           width:'100%',
@@ -168,12 +193,18 @@ export default function MatchupDecision({
           fontSize:14,
           fontWeight:950,
           letterSpacing:.2,
-          cursor:closed?'default':'pointer',
-          opacity:closed?.55:1
+          cursor:disabled?'default':'pointer',
+          opacity:disabled?.55:1
         }}
       >
-        MAKE A DECISION
+        {pending?'SAVING...':'MAKE A DECISION'}
       </button>
+
+      {message&&(
+        <div style={{marginTop:7,textAlign:'center',fontSize:11,fontWeight:800}}>
+          {message}
+        </div>
+      )}
 
       <div
         aria-live="polite"
@@ -187,7 +218,9 @@ export default function MatchupDecision({
       >
         {closed
           ? 'Bet window closed'
-          : <>Bet window closes in <span style={{fontSize:14}}>{formatCountdown(lock-now)}</span></>}
+          : !canEdit
+            ? 'Viewing another owner’s decision'
+            : <>Bet window closes in <span style={{fontSize:14}}>{formatCountdown(lock-now)}</span></>}
       </div>
     </div>
   )

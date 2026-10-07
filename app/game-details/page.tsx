@@ -242,7 +242,7 @@ export default async function GamePage({searchParams}:{searchParams:Promise<{gam
     </section>
 
     <section className="card" style={{padding:'14px',marginTop:14}}>
-      <div style={{fontSize:17,fontWeight:950}}>Team Form &amp; Betting Splits</div>
+      <div style={{fontSize:17,fontWeight:950,textAlign:'center'}}>Matchup Stats</div>
 
       <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',gap:8,alignItems:'center',marginTop:12,textAlign:'center'}}>
         <div style={{fontSize:18,fontWeight:950}}>{formAway.abbr||away?.abbreviation}</div>
@@ -268,7 +268,7 @@ export default async function GamePage({searchParams}:{searchParams:Promise<{gam
     </section>
 
     <section className="card" style={{padding:'14px',marginTop:14}}>
-      <div style={{fontSize:17,fontWeight:950}}>Head-to-Head · Last 10</div>
+      <div style={{fontSize:17,fontWeight:950,textAlign:'center'}}>Head-to-Head · Last 10</div>
 
       <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',gap:8,alignItems:'center',marginTop:10,textAlign:'center'}}>
         <div>

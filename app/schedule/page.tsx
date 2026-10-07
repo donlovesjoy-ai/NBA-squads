@@ -4,6 +4,7 @@ import { createClient } from '../../lib/supabase/server'
 import { Nav } from '../components'
 import GameZoomLink from './GameZoomLink'
 import OwnerCalendarSelect from './OwnerCalendarSelect'
+import SwipeCalendar from './SwipeCalendar'
 
 const TZ='America/New_York'
 const DAYS=['SUN','MON','TUE','WED','THU','FRI','SAT']
@@ -104,17 +105,17 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
   return <main style={{maxWidth:1120,margin:'0 auto',padding:'28px 6px 60px'}}>
     <h1 style={{textAlign:'center',marginBottom:8}}>Calendar</h1>
     <Nav commissioner={profile?.role==='commissioner'}/>
+    <SwipeCalendar
+      previousHref={mk(prev.year,prev.month)}
+      nextHref={mk(next.year,next.month)}
+    >
     <section data-calendar-panel="true" className="card" style={{padding:8,overflow:'hidden'}}>
-      <div style={{display:'grid',gridTemplateColumns:'42px 1fr 42px',alignItems:'center',gap:6}}>
-        <Link href={mk(prev.year,prev.month)} style={{fontSize:28,textAlign:'center'}}>‹</Link>
-        <div style={{textAlign:'center'}}>
-          <div style={{fontSize:25,fontWeight:900}}>{monthTitle(year,month)}</div>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginTop:5,fontWeight:900}}>
-            {nbaTeam?.logo_url&&<img src={nbaTeam.logo_url} alt={`${nbaTeam.name} logo`} style={{width:30,height:30,objectFit:'contain'}}/>}
-            <span>{nbaTeam?.name||selected.squad_name}</span>
-          </div>
+      <div style={{textAlign:'center'}}>
+        <div style={{fontSize:25,fontWeight:900}}>{monthTitle(year,month)}</div>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginTop:5,fontWeight:900}}>
+          {nbaTeam?.logo_url&&<img src={nbaTeam.logo_url} alt={`${nbaTeam.name} logo`} style={{width:30,height:30,objectFit:'contain'}}/>}
+          <span>{nbaTeam?.name||selected.squad_name}</span>
         </div>
-        <Link href={mk(next.year,next.month)} style={{fontSize:28,textAlign:'center'}}>›</Link>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',marginTop:14,alignItems:'end'}}>
         <div style={{gridColumn:'1 / span 2',padding:'2px 4px 9px',textAlign:'center'}}>
@@ -182,6 +183,7 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
         })}
       </div>
     </section>
+    </SwipeCalendar>
 
     <div style={{textAlign:'center',marginTop:14}}>
       <Link href={`/team-schedule/${selected.id}`} style={{textDecoration:'underline',fontWeight:800}}>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 
 const OVERLAY_ID='nba-game-logo-transition'
@@ -9,10 +9,6 @@ const OVERLAY_ID='nba-game-logo-transition'
 export default function GameZoomLink({href,children,style}:{href:string;children:ReactNode;style?:CSSProperties}) {
   const router=useRouter()
   const [leaving,setLeaving]=useState(false)
-
-  useEffect(()=>{
-    router.prefetch(href)
-  },[href,router])
 
   function openGame(event:React.MouseEvent<HTMLButtonElement>){
     if(leaving)return
